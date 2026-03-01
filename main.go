@@ -60,8 +60,13 @@ func main() {
 		api.POST("/users", h.CreateUser)
 	}
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	srv := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":" + port,
 		Handler: r,
 	}
 
@@ -78,7 +83,6 @@ func main() {
 	<-quit
 	log.Println("Shutting down server gracefully...")
 
-	// Give active connections 5 seconds to finish before forcing a shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
