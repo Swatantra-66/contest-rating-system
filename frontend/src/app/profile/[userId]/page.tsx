@@ -13,7 +13,6 @@ import {
 } from "recharts";
 import { Trophy, Activity, Hash, ArrowLeft } from "lucide-react";
 
-// --- Types matched exactly to PDF Database Schema ---
 interface User {
   id: string;
   name: string;
@@ -98,13 +97,13 @@ export default function ProfilePage() {
     const fetchData = async () => {
       try {
         const userRes = await fetch(
-          `http://localhost:8080/api/users/${userId}`,
+          `http://44.192.63.102:8080/api/users/${userId}`,
         );
         if (!userRes.ok) throw new Error("User not found");
         const userData = await userRes.json();
 
         const histRes = await fetch(
-          `http://localhost:8080/api/users/${userId}/history`,
+          `http://44.192.63.102:8080/api/users/${userId}/history`,
         );
         if (!histRes.ok) throw new Error("Failed to fetch history");
         const histData = await histRes.json();
@@ -141,16 +140,14 @@ export default function ProfilePage() {
     );
   if (!user) return null;
 
-  // Chart mapping based on backend rating history
   const chartData = [...history].reverse().map((h, index) => ({
     ...h,
-    rating: index === 0 ? 1200 + h.rating_change : 1200 + h.rating_change, // Starts at base 1200 for graphing
+    rating: index === 0 ? 1200 + h.rating_change : 1200 + h.rating_change,
     index: index + 1,
   }));
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 font-sans selection:bg-zinc-700">
-      {/* Flat Top Nav */}
       <nav className="border-b border-zinc-800 bg-zinc-950">
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link
@@ -160,7 +157,6 @@ export default function ProfilePage() {
             <ArrowLeft className="w-4 h-4 mr-2" /> Back
           </Link>
           <div className="flex items-center gap-3">
-            {/* Color-coded Tier Badge strictly meeting assignment requirements */}
             <div
               className={`px-2 py-0.5 text-[10px] uppercase tracking-widest font-mono font-bold border rounded-sm ${getTierColor(user.tier)}`}
             >
@@ -176,9 +172,7 @@ export default function ProfilePage() {
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="max-w-4xl mx-auto px-6 py-10 space-y-8">
-        {/* Header */}
         <div className="border-b border-zinc-800/60 pb-6">
           <h1 className="text-2xl font-semibold tracking-tight text-white">
             System Profile
@@ -188,7 +182,6 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        {/* Utilitarian Metric Grid using exact PDF schema variables */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-md">
             <div className="flex justify-between items-start">
@@ -207,7 +200,6 @@ export default function ProfilePage() {
               <span className="text-zinc-400 text-xs uppercase tracking-widest font-semibold">
                 Max Rating
               </span>
-              {/* Integrated inline badge that won't overlap */}
               <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded text-amber-500">
                 <Trophy className="w-3.5 h-3.5" />
                 <span className="text-[10px] uppercase tracking-widest font-mono font-bold">
@@ -233,7 +225,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Chart Container */}
         <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-md">
           <h3 className="text-zinc-400 text-xs uppercase tracking-widest font-semibold mb-6">
             Rating Trajectory
