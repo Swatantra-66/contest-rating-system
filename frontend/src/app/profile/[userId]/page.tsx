@@ -96,6 +96,11 @@ export default function ProfilePage() {
       try {
         const userRes = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}users/${userId}`,
+          {
+            headers: {
+              "ngrok-skip-browser-warning": "true",
+            },
+          },
         );
 
         if (!userRes.ok) {
@@ -106,6 +111,11 @@ export default function ProfilePage() {
 
         const histRes = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}users/${userId}/history`,
+          {
+            headers: {
+              "ngrok-skip-browser-warning": "true",
+            },
+          },
         );
 
         if (!histRes.ok) throw new Error("Rating history unavailable");
