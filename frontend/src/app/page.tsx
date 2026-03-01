@@ -106,12 +106,10 @@ export default function Home() {
     setAdminMessage({ text: "Calculating Elo ratings...", isError: false });
 
     try {
-      const payload = {
-        participants: [
-          { user_id: winnerId.trim(), rank: 1 },
-          { user_id: loserId.trim(), rank: 2 },
-        ],
-      };
+      const payload = [
+        { user_id: winnerId.trim(), rank: 1 },
+        { user_id: loserId.trim(), rank: 2 },
+      ];
 
       const res = await fetch(
         `${API_BASE_URL}contests/${finalizeContestId.trim()}/finalize`,
