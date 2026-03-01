@@ -35,7 +35,6 @@ interface CustomTooltipProps {
   payload?: { payload: RatingHistory }[];
 }
 
-// --- Dynamic Tier Colors ---
 const getTierColor = (tier: string) => {
   const normalized = tier?.toLowerCase() || "";
   if (normalized.includes("newbie"))
@@ -50,10 +49,9 @@ const getTierColor = (tier: string) => {
     return "text-purple-400 border-purple-900/50 bg-purple-950/30";
   if (normalized.includes("grandmaster"))
     return "text-rose-500 border-rose-900/50 bg-rose-950/30";
-  return "text-zinc-400 border-zinc-700 bg-zinc-900"; // Default fallback
+  return "text-zinc-400 border-zinc-700 bg-zinc-900";
 };
 
-// --- Custom Tooltip - Brutalist Style ---
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
@@ -97,19 +95,19 @@ export default function ProfilePage() {
     const fetchData = async () => {
       try {
         const userRes = await fetch(
-          `http://44.192.63.102:8080/api/users/${userId}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/users/${userId}`,
         );
         if (!userRes.ok) throw new Error("User not found");
         const userData = await userRes.json();
 
         const histRes = await fetch(
-          `http://44.192.63.102:8080/api/users/${userId}/history`,
+          `${process.env.NEXT_PUBLIC_API_URL}/users/${userId}/history`,
         );
         if (!histRes.ok) throw new Error("Failed to fetch history");
         const histData = await histRes.json();
 
         setUser(userData);
-        setHistory(histData);
+        setHistory(Array.isArray(histData) ? histData : []);
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);

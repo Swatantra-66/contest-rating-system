@@ -21,7 +21,7 @@ export default function Home() {
   });
   const router = useRouter();
 
-  const API_BASE_URL = "http://44.192.63.102:8080/api";
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
