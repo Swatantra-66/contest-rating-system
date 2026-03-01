@@ -28,6 +28,7 @@ interface RatingHistory {
   rank: number;
   rating_change: number;
   performance_rating: number;
+  rating?: number;
 }
 
 interface CustomTooltipProps {
@@ -67,8 +68,11 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
             Rank: <span className="text-zinc-100">{data.rank}</span>
           </p>
           <p className="text-zinc-500">
+            Current: <span className="text-zinc-100">{data.rating}</span>
+          </p>
+          <p className="text-zinc-500">
             Change:{" "}
-            <span className={isPositive ? "text-zinc-100" : "text-zinc-500"}>
+            <span className={isPositive ? "text-green-400" : "text-red-400"}>
               {isPositive ? "+" : ""}
               {data.rating_change}
             </span>
@@ -89,43 +93,30 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
   useEffect(() => {
     if (!userId) return;
 
     const fetchData = async () => {
       try {
-        const userRes = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}users/${userId}`,
-          {
-            headers: {
-              "ngrok-skip-browser-warning": "true",
-            },
-          },
-        );
-
+        const userRes = await fetch(`${API_URL}users/${userId}`);
         if (!userRes.ok) {
-          if (userRes.status === 404) throw new Error("User not found");
-          throw new Error("System communication error");
+          if (userRes.status === 404)
+            throw new Error("User UUID not found in system");
+          throw new Error("Backend connection failed");
         }
         const userData = await userRes.json();
 
-        const histRes = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}users/${userId}/history`,
-          {
-            headers: {
-              "ngrok-skip-browser-warning": "true",
-            },
-          },
-        );
-
-        if (!histRes.ok) throw new Error("Rating history unavailable");
+        const histRes = await fetch(`${API_URL}users/${userId}/history`);
+        if (!histRes.ok) throw new Error("History synchronization failed");
         const histData = await histRes.json();
 
         setUser(userData);
         setHistory(Array.isArray(histData) ? histData : []);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "An unknown error occurred",
+          err instanceof Error ? err.message : "Critical system failure",
         );
       } finally {
         setLoading(false);
@@ -133,33 +124,47 @@ export default function ProfilePage() {
     };
 
     fetchData();
-  }, [userId]);
+  }, [userId, API_URL]);
 
   if (loading)
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950 text-zinc-500 font-mono text-sm">
-        Loading system data...
+        Fetching encrypted profile data...
       </div>
     );
+
   if (error)
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950">
-        <p className="text-zinc-400 font-mono border border-zinc-800 px-4 py-2 rounded-md">
-          ERR: {error}
-        </p>
+        <div className="text-center space-y-4">
+          <p className="text-red-400 font-mono border border-red-900/50 px-4 py-2 rounded-md bg-red-950/20">
+            ERR: {error}
+          </p>
+          <Link
+            href="/"
+            className="text-zinc-500 text-xs hover:text-zinc-300 underline underline-offset-4"
+          >
+            Return to Terminal
+          </Link>
+        </div>
       </div>
     );
+
   if (!user) return null;
 
-  const chartData = [...history].reverse().map((h, index) => ({
-    ...h,
-    rating: index === 0 ? 1200 + h.rating_change : 1200 + h.rating_change,
-    index: index + 1,
-  }));
+  let runningRating = 1200;
+  const chartData = [...history].reverse().map((h, index) => {
+    runningRating += h.rating_change;
+    return {
+      ...h,
+      rating: runningRating,
+      index: index + 1,
+    };
+  });
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 font-sans selection:bg-zinc-700">
-      <nav className="border-b border-zinc-800 bg-zinc-950">
+      <nav className="border-b border-zinc-800 bg-zinc-950/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link
             href="/"
@@ -173,9 +178,6 @@ export default function ProfilePage() {
             >
               {user.tier || "Unranked"}
             </div>
-            <div className="w-6 h-6 rounded bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-mono font-bold text-zinc-300">
-              {user.name.charAt(0)}
-            </div>
             <span className="font-medium text-sm tracking-tight text-zinc-300">
               {user.name}
             </span>
@@ -188,47 +190,42 @@ export default function ProfilePage() {
           <h1 className="text-2xl font-semibold tracking-tight text-white">
             System Profile
           </h1>
-          <p className="text-zinc-500 text-sm mt-2 font-mono">
-            UUID: {user.id}
+          <p className="text-zinc-500 text-xs mt-2 font-mono uppercase tracking-tighter">
+            Internal ID: {user.id}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-md">
+          <div className="bg-zinc-900/50 border border-zinc-800 p-5 rounded-md hover:border-zinc-700 transition-colors">
             <div className="flex justify-between items-start">
-              <span className="text-zinc-400 text-xs uppercase tracking-widest font-semibold">
-                Current Rating
+              <span className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold">
+                Rating
               </span>
-              <Activity className="text-zinc-600 w-4 h-4" />
+              <Activity className="text-zinc-700 w-4 h-4" />
             </div>
             <span className="mt-3 block text-3xl font-mono text-white">
               {user.current_rating}
             </span>
           </div>
 
-          <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-md">
+          <div className="bg-zinc-900/50 border border-zinc-800 p-5 rounded-md hover:border-zinc-700 transition-colors">
             <div className="flex justify-between items-start">
-              <span className="text-zinc-400 text-xs uppercase tracking-widest font-semibold">
-                Max Rating
+              <span className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold">
+                Peak
               </span>
-              <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded text-amber-500">
-                <Trophy className="w-3.5 h-3.5" />
-                <span className="text-[10px] uppercase tracking-widest font-mono font-bold">
-                  All-Time High
-                </span>
-              </div>
+              <Trophy className="text-amber-500/50 w-4 h-4" />
             </div>
             <span className="mt-3 block text-3xl font-mono text-white">
               {user.max_rating}
             </span>
           </div>
 
-          <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-md">
+          <div className="bg-zinc-900/50 border border-zinc-800 p-5 rounded-md hover:border-zinc-700 transition-colors">
             <div className="flex justify-between items-start">
-              <span className="text-zinc-400 text-xs uppercase tracking-widest font-semibold">
-                Total Contests
+              <span className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold">
+                Played
               </span>
-              <Hash className="text-zinc-600 w-4 h-4" />
+              <Hash className="text-zinc-700 w-4 h-4" />
             </div>
             <span className="mt-3 block text-3xl font-mono text-white">
               {user.contests_played}
@@ -236,40 +233,36 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-md">
-          <h3 className="text-zinc-400 text-xs uppercase tracking-widest font-semibold mb-6">
-            Rating Trajectory
+        <div className="bg-zinc-900/30 border border-zinc-800 p-6 rounded-md">
+          <h3 className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold mb-8">
+            Performance Trajectory
           </h3>
-          <div className="h-[300px] w-full">
+          <div className="h-[320px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   vertical={false}
-                  stroke="#27272a"
+                  stroke="#18181b"
                 />
                 <XAxis dataKey="index" hide />
                 <Tooltip
                   content={<CustomTooltip />}
-                  cursor={{
-                    stroke: "#52525b",
-                    strokeWidth: 1,
-                    strokeDasharray: "4 4",
-                  }}
+                  cursor={{ stroke: "#27272a", strokeWidth: 1 }}
                 />
                 <Line
                   type="monotone"
                   dataKey="rating"
-                  stroke="#e4e4e7"
+                  stroke="#71717a"
                   strokeWidth={2}
                   dot={{
                     r: 3,
-                    fill: "#18181b",
+                    fill: "#09090b",
                     strokeWidth: 2,
-                    stroke: "#e4e4e7",
+                    stroke: "#a1a1aa",
                   }}
-                  activeDot={{ r: 5, fill: "#ffffff", strokeWidth: 0 }}
-                  animationDuration={1000}
+                  activeDot={{ r: 4, fill: "#ffffff", strokeWidth: 0 }}
+                  animationDuration={1500}
                 />
               </LineChart>
             </ResponsiveContainer>
