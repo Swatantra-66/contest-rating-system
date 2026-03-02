@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -11,6 +11,13 @@ import {
   Trophy,
   Swords,
 } from "lucide-react";
+
+import { Orbitron } from "next/font/google";
+
+const futuristicFont = Orbitron({
+  subsets: ["latin"],
+  weight: ["700", "900"],
+});
 
 export default function Home() {
   const [userId, setUserId] = useState("");
@@ -28,6 +35,22 @@ export default function Home() {
   const router = useRouter();
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  useEffect(() => {
+    const savedContest = localStorage.getItem("persist_contest_id");
+    const savedWinner = localStorage.getItem("persist_winner_id");
+    const savedLoser = localStorage.getItem("persist_loser_id");
+
+    if (savedContest) setFinalizeContestId(savedContest);
+    if (savedWinner) setWinnerId(savedWinner);
+    if (savedLoser) setLoserId(savedLoser);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("persist_contest_id", finalizeContestId);
+    localStorage.setItem("persist_winner_id", winnerId);
+    localStorage.setItem("persist_loser_id", loserId);
+  }, [finalizeContestId, winnerId, loserId]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,6 +153,9 @@ export default function Home() {
       setFinalizeContestId("");
       setWinnerId("");
       setLoserId("");
+      localStorage.removeItem("persist_contest_id");
+      localStorage.removeItem("persist_winner_id");
+      localStorage.removeItem("persist_loser_id");
     } catch (err) {
       setAdminMessage({
         text: "Error finalizing match. Verify all UUIDs are correct.",
@@ -143,13 +169,15 @@ export default function Home() {
     <div className="min-h-screen bg-zinc-950 text-zinc-50 flex flex-col items-center justify-center p-6 font-sans">
       <div className="max-w-3xl w-full space-y-12">
         <div className="space-y-6 text-center">
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-zinc-100">
-            Contest Rating System
+          <h1
+            className={`text-4xl md:text-6xl text-white tracking-wider uppercase whitespace-nowrap ${futuristicFont.className}`}
+          >
+            ELO<span className="text-zinc-600">NODE</span>
           </h1>
-          <p className="text-zinc-400 text-base max-w-xl mx-auto leading-relaxed">
-            A high-performance percentile tracking system.{" "}
-            <br className="hidden sm:block" />
-            Connected to Render & Supabase for production stability.
+
+          <p className="text-zinc-400 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+            The central engine automatically recalculates player Elo ratings,
+            global percentiles, and skill tiers after every finalized bout.
           </p>
         </div>
 
@@ -166,7 +194,7 @@ export default function Home() {
                 type="text"
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
-                placeholder="Enter User UUID..."
+                placeholder="Enter User UUID"
                 className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 rounded-md py-2.5 pl-10 pr-4 focus:outline-none focus:border-zinc-500 transition-colors font-mono text-sm"
                 required
               />
@@ -198,7 +226,7 @@ export default function Home() {
                   type="text"
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
-                  placeholder="New User Name..."
+                  placeholder="New User Name"
                   className="w-full bg-zinc-900/50 border border-zinc-800 text-zinc-100 rounded-md py-2 pl-10 pr-4 focus:outline-none focus:border-zinc-500 transition-colors font-mono text-sm"
                   required
                 />
@@ -223,7 +251,7 @@ export default function Home() {
                   type="text"
                   value={newContestName}
                   onChange={(e) => setNewContestName(e.target.value)}
-                  placeholder="New Contest Name..."
+                  placeholder="New Contest Name"
                   className="w-full bg-zinc-900/50 border border-zinc-800 text-zinc-100 rounded-md py-2 pl-10 pr-4 focus:outline-none focus:border-zinc-500 transition-colors font-mono text-sm"
                   required
                 />
