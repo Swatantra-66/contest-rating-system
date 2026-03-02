@@ -56,13 +56,15 @@ func main() {
 		api.GET("/users/:id", h.GetUser)
 		api.GET("/users/:id/history", h.GetRatingHistory)
 		api.GET("/users", h.GetUsers)
+		api.GET("/health", h.GetHealth)
+		api.GET("/stats", h.GetStats)
+		api.GET("/contests", h.GetContests)
+
 		api.POST("/contests/:id/finalize", h.FinalizeContest)
 		api.POST("/contests", h.CreateContest)
 		api.POST("/users", h.CreateUser)
 
-		api.GET("/health", h.GetHealth)
-		api.GET("/stats", h.GetStats)
-		api.GET("/contests", h.GetContests)
+		api.DELETE("/contests/:id", h.DeleteContest)
 	}
 
 	port := os.Getenv("PORT")
@@ -102,7 +104,7 @@ func corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, ngrok-skip-browser-warning")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Admin-Key")
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
 			return
