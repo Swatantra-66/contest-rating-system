@@ -23,10 +23,10 @@ export default function Home() {
   const [userId, setUserId] = useState("");
   const [newUserName, setNewUserName] = useState("");
   const [newContestName, setNewContestName] = useState("");
-
   const [finalizeContestId, setFinalizeContestId] = useState("");
   const [winnerId, setWinnerId] = useState("");
   const [loserId, setLoserId] = useState("");
+  const [participants, setParticipants] = useState<number>(2);
 
   const [adminMessage, setAdminMessage] = useState({
     text: "",
@@ -101,7 +101,10 @@ export default function Home() {
       const res = await fetch(`${API_BASE_URL}contests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newContestName.trim() }),
+        body: JSON.stringify({
+          name: newContestName.trim(),
+          total_participants: participants,
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to create contest");
@@ -256,6 +259,21 @@ export default function Home() {
                   required
                 />
               </div>
+
+              <div className="w-full sm:w-24">
+                <input
+                  type="number"
+                  min="2"
+                  value={participants}
+                  title="Participant Count"
+                  onChange={(e) =>
+                    setParticipants(parseInt(e.target.value) || 2)
+                  }
+                  className="w-full bg-zinc-900/50 border border-zinc-800 text-zinc-100 rounded-md py-2 px-3 focus:outline-none focus:border-zinc-500 transition-colors font-mono text-sm"
+                  required
+                />
+              </div>
+
               <button
                 type="submit"
                 className="px-4 py-2 bg-zinc-800 text-white rounded-md hover:bg-zinc-700 transition-colors cursor-pointer whitespace-nowrap"
