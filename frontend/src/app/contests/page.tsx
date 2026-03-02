@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Orbitron } from "next/font/google";
-import { Zap, Copy, Check, Activity } from "lucide-react";
+import { Zap, Copy, Check, Activity, Trash2 } from "lucide-react";
 
 const futuristicFont = Orbitron({
   subsets: ["latin"],
@@ -43,6 +43,37 @@ export default function ContestsPage() {
     navigator.clipboard.writeText(id);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleDelete = async (contestId: string) => {
+    const secretKey = window.prompt(
+      "ENTER ADMIN SECURITY KEY TO AUTHORIZE DELETION:",
+    );
+
+    if (!secretKey) return;
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}contests/${contestId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "X-Admin-Key": secretKey,
+          },
+        },
+      );
+
+      if (res.ok) {
+        setContests((prev) => prev.filter((c) => c.id !== contestId));
+        alert("Contest Purged Successfully.");
+      } else {
+        const data = await res.json();
+        alert(`Termination Failed: ${data.error}`);
+      }
+    } catch (err) {
+      console.error("Failed to execute deletion protocol", err);
+      alert("System Error: Could not reach backend.");
+    }
   };
 
   if (loading) {
@@ -132,16 +163,26 @@ export default function ContestsPage() {
                       </span>
                     </td>
 
-                    <td className="p-4 text-right">
-                      <span
-                        className={`text-[10px] font-black uppercase px-2 py-1 rounded-sm border ${
-                          contest.finalized
-                            ? "bg-emerald-950/30 text-emerald-500 border-emerald-900/50"
-                            : "bg-amber-950/30 text-amber-500 border-amber-900/50"
-                        }`}
-                      >
-                        {contest.finalized ? "FINALIZED" : "ACTIVE / PENDING"}
-                      </span>
+                    <td className="p-4 w-48">
+                      <div className="flex items-center justify-end gap-3">
+                        <span
+                          className={`flex items-center justify-center h-6 px-2 text-[10px] leading-none font-black uppercase rounded-sm border ${
+                            contest.finalized
+                              ? "bg-emerald-950/30 text-emerald-500 border-emerald-900/50"
+                              : "bg-amber-950/30 text-amber-500 border-amber-900/50"
+                          }`}
+                        >
+                          {contest.finalized ? "FINALIZED" : "ACTIVE / PENDING"}
+                        </span>
+
+                        <button
+                          onClick={() => handleDelete(contest.id)}
+                          className="flex items-center justify-center h-6 px-1.5 text-zinc-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-sm transition-all group-hover:opacity-100 opacity-0"
+                          title="Delete Contest"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
