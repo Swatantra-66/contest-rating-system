@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -262,4 +263,35 @@ func (h *Handler) GetContests(c *gin.Context) {
 	}
 
 	c.JSON(200, contests)
+}
+
+func (h *Handler) DeleteContest(c *gin.Context) {
+	contestID := c.Param("id")
+
+	adminKey := c.GetHeader("X-Admin-Key")
+	expectedKey := os.Getenv("ADMIN_SECRET")
+
+	if expectedKey == "" || adminKey != expectedKey {
+		c.JSON(401, gin.H{"error": "unauthorized access: invalid security key"})
+		return
+	}
+
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("contest_id = ?", contestID).Delete(&models.RatingHistory{}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Where("id = ?", contestID).Delete(&models.Contest{}).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to execute system purge protocol"})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "contest and associated logs purged"})
 }
