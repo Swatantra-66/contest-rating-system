@@ -72,7 +72,7 @@ export default function ContestsPage() {
                 <th className="p-4 font-bold">Contest ID</th>
                 <th className="p-4 font-bold">Contest Name</th>
                 <th className="p-4 font-bold text-center">Participants</th>
-                <th className="p-4 font-bold text-right">Engine Status</th>
+                <th className="p-4 font-bold text-right">Contest Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-900">
