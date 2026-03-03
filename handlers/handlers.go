@@ -27,6 +27,8 @@ type WebhookPayload struct {
 	Event       string `json:"event"`
 	ContestID   string `json:"contest_id"`
 	ContestName string `json:"contest_name"`
+	WinnerID    string `json:"winner_id,omitempty"`
+	LoserID     string `json:"loser_id,omitempty"`
 }
 
 func New(db *gorm.DB) *Handler {
@@ -227,6 +229,24 @@ func (h *Handler) FinalizeContest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	var winnerID, loserID string
+	for _, entry := range entries {
+		switch entry.Rank {
+		case 1:
+			winnerID = entry.UserID
+		case 2:
+			loserID = entry.UserID
+		}
+	}
+
+	FireWebhook(WebhookPayload{
+		Event:       "MATCH_FINALIZED",
+		ContestID:   contestID,
+		ContestName: contest.Name,
+		WinnerID:    winnerID,
+		LoserID:     loserID,
+	})
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":            "contest finalized",
