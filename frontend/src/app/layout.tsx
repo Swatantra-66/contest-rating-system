@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "elonode",
+  title: "ELONODE",
   description:
     "A high-performance percentile tracking system built with Go and Next.js",
 };
