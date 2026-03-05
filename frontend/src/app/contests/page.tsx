@@ -186,7 +186,6 @@ export default function ContestsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 p-6 relative">
-      {/* Toast Notification */}
       {notification && (
         <div className="fixed bottom-8 right-8 z-[200] flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-lg p-4 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
           {notification.type === "success" ? (
