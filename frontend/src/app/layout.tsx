@@ -1,6 +1,6 @@
 import React from "react";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Orbitron } from "next/font/google"; // 1. Imported Orbitron
 import Sidebar from "@/components/Sidebar";
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
@@ -18,6 +18,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// 2. Set up Orbitron as a CSS variable just like the Geist fonts
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  weight: ["700", "900"],
+  variable: "--font-orbitron",
+});
+
 export const metadata: Metadata = {
   title: "ELONODE",
   description:
@@ -30,10 +37,99 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider appearance={{ baseTheme: dark }}>
+    <ClerkProvider
+      appearance={{
+        baseTheme: dark,
+        variables: {
+          colorPrimary: "#10b981",
+          colorBackground: "",
+          colorText: "#ffffff",
+          colorTextSecondary: "#d4d4d8",
+          fontFamily: "var(--font-geist-sans)",
+        },
+        elements: {
+          logoBox: {
+            display: "none",
+          },
+
+          card: {
+            backgroundColor: "#18181b",
+            border: "1px solid #27272a",
+          },
+
+          // 3. Apply the Orbitron font variable to the header!
+          headerTitle: {
+            color: "#ffffff",
+            fontFamily: "var(--font-orbitron)",
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+          },
+
+          headerSubtitle: {
+            color: "#d4d4d8",
+          },
+
+          socialButtonsBlockButton: {
+            backgroundColor: "#27272a",
+            border: "1px solid #3f3f46",
+          },
+
+          socialButtonsBlockButtonText: {
+            color: "#ffffff",
+            fontWeight: "600",
+          },
+
+          formFieldInput: {
+            backgroundColor: "#ffffff",
+            borderColor: "#3f3f46",
+            color: "#27272a",
+          },
+
+          formFieldLabel: {
+            color: "#e4e4e7",
+          },
+
+          formFieldHintText: {
+            color: "#a1a1aa",
+          },
+
+          formFieldInfoText: {
+            color: "#a1a1aa",
+          },
+
+          formFieldErrorText: {
+            color: "#ef4444",
+          },
+
+          dividerLine: {
+            backgroundColor: "#3f3f46",
+          },
+
+          dividerText: {
+            color: "#a1a1aa",
+          },
+
+          footerActionText: {
+            color: "#a1a1aa",
+          },
+
+          footerActionLink: {
+            color: "#10b981",
+            fontWeight: "600",
+          },
+
+          formButtonPrimary: {
+            backgroundColor: "#10b981",
+            color: "#ffffff",
+            fontWeight: "600",
+          },
+        },
+      }}
+    >
       <html lang="en">
+        {/* 4. Injected the orbitron.variable into the body so Clerk can access it */}
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased flex min-h-screen bg-zinc-950 text-zinc-50 overflow-hidden`}
+          className={`${geistSans.variable} ${geistMono.variable} ${orbitron.variable} antialiased flex min-h-screen bg-zinc-950 text-zinc-50 overflow-hidden`}
         >
           <Sidebar />
           <main className="flex-1 overflow-y-auto h-screen relative">
