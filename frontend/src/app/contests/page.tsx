@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Orbitron } from "next/font/google";
-import { useUser } from "@clerk/nextjs"; // 👈 Added Clerk hook
+import { useUser } from "@clerk/nextjs";
 import {
   Zap,
   Copy,
@@ -97,7 +97,7 @@ function SecurityModal({
 }
 
 export default function ContestsPage() {
-  const { user } = useUser(); // 👈 Initialize user hook
+  const { user } = useUser();
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -111,7 +111,6 @@ export default function ContestsPage() {
     type: "success" | "error";
   } | null>(null);
 
-  // 🛡️ Define the admin check based on Clerk metadata
   const isAdmin = user?.publicMetadata?.role === "admin";
 
   useEffect(() => {
@@ -293,7 +292,6 @@ export default function ContestsPage() {
                           {contest.finalized ? "FINALIZED" : "ACTIVE / PENDING"}
                         </span>
 
-                        {/* 🛡️ Added role check logic here */}
                         {isAdmin && (
                           <button
                             onClick={() => {
