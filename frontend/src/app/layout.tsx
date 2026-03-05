@@ -2,6 +2,8 @@ import React from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Sidebar from "@/components/Sidebar";
+import { ClerkProvider } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,16 +28,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased flex min-h-screen bg-zinc-950 text-zinc-50 overflow-hidden`}
-      >
-        <Sidebar />
+    <ClerkProvider appearance={{ baseTheme: dark }}>
+      <html lang="en">
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased flex min-h-screen bg-zinc-950 text-zinc-50 overflow-hidden`}
+        >
+          <Sidebar />
 
-        <main className="flex-1 overflow-y-auto h-screen relative">
-          {children}
-        </main>
-      </body>
-    </html>
+          <main className="flex-1 overflow-y-auto h-screen relative">
+            {children}
+          </main>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
