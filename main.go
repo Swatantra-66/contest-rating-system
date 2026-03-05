@@ -59,6 +59,8 @@ func main() {
 		api.GET("/health", h.GetHealth)
 		api.GET("/stats", h.GetStats)
 		api.GET("/contests", h.GetContests)
+		api.GET("/contests/:id", h.GetContest)
+		api.GET("/history", h.GetGlobalHistory)
 
 		api.POST("/contests/:id/finalize", h.FinalizeContest)
 		api.POST("/contests", h.CreateContest)
