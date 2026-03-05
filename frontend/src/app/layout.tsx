@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Sidebar from "@/components/Sidebar";
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,6 +39,8 @@ export default function RootLayout({
           <main className="flex-1 overflow-y-auto h-screen relative">
             {children}
           </main>
+
+          <Analytics />
         </body>
       </html>
     </ClerkProvider>
