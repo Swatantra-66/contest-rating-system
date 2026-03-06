@@ -159,7 +159,7 @@ export default function RootLayout({
     >
       <html lang="en">
         <body
-          className={`${geistSans.variable} ${geistMono.variable} ${orbitron.variable} antialiased flex min-h-screen bg-zinc-950 text-zinc-50 overflow-hidden`}
+          className={`${geistSans.variable} ${geistMono.variable} ${orbitron.variable} antialiased flex min-h-screen text-zinc-50 overflow-hidden`}
         >
           <Sidebar />
           <main className="flex-1 overflow-y-auto h-screen relative">
