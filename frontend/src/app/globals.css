@@ -31,6 +31,7 @@ body {
     radial-gradient(circle at 80% 0%, #022c22, transparent 40%),
     radial-gradient(circle at 0% 80%, #111827, transparent 40%),
     var(--background);
+
   background-size: 200% 200%;
   animation: elonodeGradient 12s ease infinite;
 }
@@ -112,38 +113,6 @@ body {
   box-shadow: 0 0 30px rgba(16, 185, 129, 0.6);
 }
 
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-
-  background-image:
-    radial-gradient(4px 4px at 20% 30%, #10b981, transparent),
-    radial-gradient(4px 4px at 80% 40%, #22c55e, transparent),
-    radial-gradient(4px 4px at 50% 70%, #06b6d4, transparent),
-    radial-gradient(4px 4px at 30% 80%, #10b981, transparent),
-    radial-gradient(4px 4px at 70% 20%, #22c55e, transparent);
-
-  background-repeat: no-repeat;
-  opacity: 0.7;
-
-  animation: elonodeParticles 20s linear infinite;
-}
-
-@keyframes elonodeParticles {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-40px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
-}
-
 body::before {
   content: "";
   position: fixed;
@@ -151,10 +120,8 @@ body::before {
   pointer-events: none;
   z-index: 0;
 
-  background-image: linear-gradient(
-      rgba(255, 255, 255, 0.08) 1px,
-      transparent 1px
-    )
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
 
   background-size: 40px 40px;
