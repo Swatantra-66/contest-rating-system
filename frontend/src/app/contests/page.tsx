@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Orbitron } from "next/font/google";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import {
   Zap,
   Copy,
@@ -98,6 +98,7 @@ function SecurityModal({
 
 export default function ContestsPage() {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -149,11 +150,16 @@ export default function ContestsPage() {
     setIsModalOpen(false);
 
     try {
+      const token = await getToken();
+
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}contests/${target.id}`,
         {
           method: "DELETE",
-          headers: { "X-Admin-Key": secretKey },
+          headers: {
+            "X-Admin-Key": secretKey,
+            Authorization: `Bearer ${token}`,
+          },
         },
       );
 
@@ -166,7 +172,7 @@ export default function ContestsPage() {
       } else {
         const data = await res.json();
         setNotification({
-          message: `Termination Failed: ${data.error}`,
+          message: `Termination Failed: ${data.error || "Unauthorized"}`,
           type: "error",
         });
       }
