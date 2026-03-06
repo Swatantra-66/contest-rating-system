@@ -189,7 +189,8 @@ export default function ContestsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 relative">
+    <div className="min-h-screen p-6 relative">
+      {" "}
       {notification && (
         <div className="fixed bottom-8 right-8 z-[200] flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-lg p-4 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
           {notification.type === "success" ? (
@@ -202,8 +203,8 @@ export default function ContestsPage() {
           </span>
         </div>
       )}
-
-      <div className="w-full max-w-5xl mx-auto mt-8 bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
+      <div className="w-full max-w-5xl mx-auto mt-8 bg-zinc-950/40 backdrop-blur-md border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
+        {" "}
         <div className="flex items-center gap-4 p-6 border-b border-zinc-800 bg-zinc-900/20">
           <Activity className="w-6 h-6 text-indigo-500" />
           <h2
@@ -212,7 +213,6 @@ export default function ContestsPage() {
             Contest<span className="text-zinc-600"> Logs</span>
           </h2>
         </div>
-
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
