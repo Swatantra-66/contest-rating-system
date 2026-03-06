@@ -77,8 +77,12 @@ export default function RootLayout({
             fontWeight: "600",
           },
 
-          "socialButtonsProviderIcon--github": {
+          socialButtonsProviderIcon: {
             filter: "brightness(0) invert(1)",
+          },
+
+          "socialButtonsProviderIcon--github": {
+            filter: "brightness(0) invert(1) contrast(1.2)",
             opacity: "1",
           },
 
@@ -102,6 +106,11 @@ export default function RootLayout({
 
           formFieldErrorText: {
             color: "#ef4444",
+          },
+
+          formFieldSuccessText: {
+            color: "#10b981",
+            fontWeight: "500",
           },
 
           dividerLine: {
