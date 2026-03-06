@@ -79,8 +79,9 @@ export default function GlobalHistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 relative">
-      <div className="w-full max-w-[1600px] mx-auto mt-8 bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
+    <div className="min-h-screen p-6 relative">
+      {" "}
+      <div className="w-full max-w-[1600px] mx-auto mt-8 bg-zinc-950/40 backdrop-blur-md border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
         <div className="flex items-center gap-4 p-6 border-b border-zinc-800 bg-zinc-900/20">
           <svg
             className="w-6 h-6 text-indigo-500"
@@ -228,7 +229,6 @@ export default function GlobalHistoryPage() {
           </table>
         </div>
       </div>
-
       {activeDetail && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
           <div
