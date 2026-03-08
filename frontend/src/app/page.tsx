@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, ReactNode } from "react";
 import Link from "next/link";
-import { useUser, UserButton } from "@clerk/nextjs";
+import { useUser, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Orbitron } from "next/font/google";
 import {
   Swords,
@@ -80,7 +80,14 @@ export default function NodeHub() {
 
   useEffect(() => {
     const syncUserToDatabase = async () => {
-      if (!isLoaded || !user) return;
+      // If user data isn't loaded yet, do nothing
+      if (!isLoaded) return;
+
+      // If there is NO user (public visitor), stop the loading spinner
+      if (!user) {
+        setIsSyncing(false);
+        return;
+      }
 
       const playerName =
         user.username ||
@@ -126,7 +133,7 @@ export default function NodeHub() {
     syncUserToDatabase();
   }, [isLoaded, user, API_BASE_URL]);
 
-  if (isSyncing || !isLoaded) {
+  if (!isLoaded || isSyncing) {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-zinc-500 font-mono text-sm uppercase tracking-widest gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
@@ -193,57 +200,91 @@ export default function NodeHub() {
       <div className="relative z-10 w-full overflow-x-hidden">
         <section className="relative w-full h-screen flex flex-col justify-between pointer-events-none">
           <div className="absolute top-8 left-8 right-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pointer-events-auto animate-fade-down">
-            <div className="flex items-center gap-3 px-4 py-2.5 bg-zinc-900/80 backdrop-blur-md rounded-xl border border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
-              <UserButton
-                appearance={{
-                  elements: {
-                    userButtonAvatarBox:
-                      "w-9 h-9 border-2 border-indigo-500/50 hover:border-indigo-400 transition-colors",
-                  },
-                }}
-              />
-              <div className="flex flex-col">
-                <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest">
-                  Active Node
-                </span>
-                <span className="text-[13px] font-bold text-white uppercase tracking-wider">
-                  {user?.username || user?.firstName || "Unknown"}
-                </span>
+            {user ? (
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-zinc-900/80 backdrop-blur-md rounded-xl border border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
+                <UserButton
+                  appearance={{
+                    elements: {
+                      userButtonAvatarBox:
+                        "w-9 h-9 border-2 border-indigo-500/50 hover:border-indigo-400 transition-colors",
+                    },
+                  }}
+                />
+                <div className="flex flex-col">
+                  <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest">
+                    Active Node
+                  </span>
+                  <span className="text-[13px] font-bold text-white uppercase tracking-wider">
+                    {user?.username || user?.firstName || "Unknown"}
+                  </span>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-zinc-900/80 backdrop-blur-md rounded-xl border border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
+                <div className="w-9 h-9 rounded-full border-2 border-zinc-700 bg-zinc-800 flex items-center justify-center">
+                  <Terminal size={16} className="text-zinc-500" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest">
+                    System Status
+                  </span>
+                  <span className="text-[13px] font-bold text-zinc-400 uppercase tracking-wider">
+                    Unauthenticated
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-4">
-              <Link
-                href="/arena"
-                className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 backdrop-blur-md text-zinc-100 font-mono text-[11px] font-bold uppercase tracking-widest rounded-lg border border-indigo-500/50 shadow-[0_3px_0_rgba(79,70,229,0.5)] hover:bg-indigo-500/20 hover:shadow-[0_1px_0_rgba(79,70,229,0.5)] hover:translate-y-[2px] active:shadow-none active:translate-y-[3px] transition-all cursor-pointer"
-              >
-                <Swords size={14} className="text-indigo-400" />
-                Enter Arena
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    href="/arena"
+                    className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 backdrop-blur-md text-zinc-100 font-mono text-[11px] font-bold uppercase tracking-widest rounded-lg border border-indigo-500/50 shadow-[0_3px_0_rgba(79,70,229,0.5)] hover:bg-indigo-500/20 hover:shadow-[0_1px_0_rgba(79,70,229,0.5)] hover:translate-y-[2px] active:shadow-none active:translate-y-[3px] transition-all cursor-pointer"
+                  >
+                    <Swords size={14} className="text-indigo-400" />
+                    Enter Arena
+                  </Link>
 
-              <Link
-                href="/leaderboard"
-                className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 backdrop-blur-md text-zinc-100 font-mono text-[11px] font-bold uppercase tracking-widest rounded-lg border border-amber-500/50 shadow-[0_3px_0_rgba(245,158,11,0.5)] hover:bg-amber-500/20 hover:shadow-[0_1px_0_rgba(245,158,11,0.5)] hover:translate-y-[2px] active:shadow-none active:translate-y-[3px] transition-all cursor-pointer"
-              >
-                <Trophy size={14} className="text-amber-400" />
-                Rankings
-              </Link>
+                  <Link
+                    href="/leaderboard"
+                    className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 backdrop-blur-md text-zinc-100 font-mono text-[11px] font-bold uppercase tracking-widest rounded-lg border border-amber-500/50 shadow-[0_3px_0_rgba(245,158,11,0.5)] hover:bg-amber-500/20 hover:shadow-[0_1px_0_rgba(245,158,11,0.5)] hover:translate-y-[2px] active:shadow-none active:translate-y-[3px] transition-all cursor-pointer"
+                  >
+                    <Trophy size={14} className="text-amber-400" />
+                    Rankings
+                  </Link>
 
-              <Link
-                href={`/profile/${nodeId}`}
-                className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 backdrop-blur-md text-zinc-100 font-mono text-[11px] font-bold uppercase tracking-widest rounded-lg border border-cyan-500/50 shadow-[0_3px_0_rgba(6,182,212,0.5)] hover:bg-cyan-500/20 hover:shadow-[0_1px_0_rgba(6,182,212,0.5)] hover:translate-y-[2px] active:shadow-none active:translate-y-[3px] transition-all cursor-pointer"
-              >
-                <Activity size={14} className="text-cyan-400" />
-                My Node
-              </Link>
+                  <Link
+                    href={`/profile/${nodeId}`}
+                    className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 backdrop-blur-md text-zinc-100 font-mono text-[11px] font-bold uppercase tracking-widest rounded-lg border border-cyan-500/50 shadow-[0_3px_0_rgba(6,182,212,0.5)] hover:bg-cyan-500/20 hover:shadow-[0_1px_0_rgba(6,182,212,0.5)] hover:translate-y-[2px] active:shadow-none active:translate-y-[3px] transition-all cursor-pointer"
+                  >
+                    <Activity size={14} className="text-cyan-400" />
+                    My Node
+                  </Link>
 
-              <Link
-                href="/docs"
-                className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 backdrop-blur-md text-zinc-100 font-mono text-[11px] font-bold uppercase tracking-widest rounded-lg border border-blue-500/50 shadow-[0_3px_0_rgba(59,130,246,0.5)] hover:bg-blue-500/20 hover:shadow-[0_1px_0_rgba(59,130,246,0.5)] hover:translate-y-[2px] active:shadow-none active:translate-y-[3px] transition-all cursor-pointer"
-              >
-                <Terminal size={14} className="text-blue-400" />
-                System Docs
-              </Link>
+                  <Link
+                    href="/docs"
+                    className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 backdrop-blur-md text-zinc-100 font-mono text-[11px] font-bold uppercase tracking-widest rounded-lg border border-blue-500/50 shadow-[0_3px_0_rgba(59,130,246,0.5)] hover:bg-blue-500/20 hover:shadow-[0_1px_0_rgba(59,130,246,0.5)] hover:translate-y-[2px] active:shadow-none active:translate-y-[3px] transition-all cursor-pointer"
+                  >
+                    <Terminal size={14} className="text-blue-400" />
+                    System Docs
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <SignInButton mode="modal">
+                    <button className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 backdrop-blur-md text-zinc-300 hover:text-white font-mono text-[11px] font-bold uppercase tracking-widest rounded-lg border border-zinc-700 hover:border-zinc-500 transition-all cursor-pointer">
+                      System Login
+                    </button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600/20 backdrop-blur-md text-indigo-300 hover:text-indigo-200 font-mono text-[11px] font-bold uppercase tracking-widest rounded-lg border border-indigo-500/50 shadow-[0_3px_0_rgba(79,70,229,0.5)] hover:shadow-[0_1px_0_rgba(79,70,229,0.5)] hover:translate-y-[2px] active:shadow-none active:translate-y-[3px] transition-all cursor-pointer">
+                      <Zap size={14} className="text-indigo-400" />
+                      Initialize Node
+                    </button>
+                  </SignUpButton>
+                </>
+              )}
             </div>
           </div>
 
@@ -288,11 +329,11 @@ export default function NodeHub() {
               </p>
             </FadeIn>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-32">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
               <FadeIn
                 delay={100}
                 yOffset={50}
-                className="bg-zinc-900/40 border border-zinc-800 p-8 rounded-2xl hover:border-indigo-500/50 hover:bg-zinc-900/60 transition-all group h-full"
+                className="bg-zinc-900/40 border border-zinc-700/80 p-8 rounded-2xl hover:border-indigo-500/50 hover:bg-zinc-800/60 transition-all group h-full shadow-lg"
               >
                 <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center border border-indigo-500/20 mb-6">
                   <Cpu className="text-indigo-400 w-6 h-6 group-hover:scale-110 transition-transform" />
@@ -302,7 +343,7 @@ export default function NodeHub() {
                 >
                   Algorithmic Elo
                 </h3>
-                <p className="text-zinc-500 text-xs font-mono leading-loose">
+                <p className="text-zinc-400 text-sm leading-relaxed">
                   Ratings are calculated mathematically via Go-routines using
                   dynamic percentile brackets to assure competitive integrity.
                 </p>
@@ -311,7 +352,7 @@ export default function NodeHub() {
               <FadeIn
                 delay={250}
                 yOffset={50}
-                className="bg-zinc-900/40 border border-zinc-800 p-8 rounded-2xl hover:border-amber-500/50 hover:bg-zinc-900/60 transition-all group h-full"
+                className="bg-zinc-900/40 border border-zinc-700/80 p-8 rounded-2xl hover:border-amber-500/50 hover:bg-zinc-800/60 transition-all group h-full shadow-lg"
               >
                 <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center border border-amber-500/20 mb-6">
                   <Network className="text-amber-400 w-6 h-6 group-hover:scale-110 transition-transform" />
@@ -321,7 +362,7 @@ export default function NodeHub() {
                 >
                   Node Protocol
                 </h3>
-                <p className="text-zinc-500 text-xs font-mono leading-loose">
+                <p className="text-zinc-400 text-sm leading-relaxed">
                   Challenge the grid via 1v1 duels or multi-participant Royale
                   events. Data is synchronized continuously to the frontend.
                 </p>
@@ -330,7 +371,7 @@ export default function NodeHub() {
               <FadeIn
                 delay={400}
                 yOffset={50}
-                className="bg-zinc-900/40 border border-zinc-800 p-8 rounded-2xl hover:border-cyan-500/50 hover:bg-zinc-900/60 transition-all group h-full"
+                className="bg-zinc-900/40 border border-zinc-700/80 p-8 rounded-2xl hover:border-cyan-500/50 hover:bg-zinc-800/60 transition-all group h-full shadow-lg"
               >
                 <div className="w-12 h-12 bg-cyan-500/10 rounded-xl flex items-center justify-center border border-cyan-500/20 mb-6">
                   <Shield className="text-cyan-400 w-6 h-6 group-hover:scale-110 transition-transform" />
@@ -340,13 +381,68 @@ export default function NodeHub() {
                 >
                   Immutable Logs
                 </h3>
-                <p className="text-zinc-500 text-xs font-mono leading-loose">
+                <p className="text-zinc-400 text-sm leading-relaxed">
                   Every encounter is logged securely. Track your performance
                   trajectory and specific rating deviations in your Node
                   Profile.
                 </p>
               </FadeIn>
             </div>
+
+            <FadeIn
+              delay={200}
+              yOffset={40}
+              className="w-full max-w-4xl mx-auto mb-32"
+            >
+              <div className="bg-zinc-950/80 border border-zinc-700/80 rounded-2xl p-6 md:p-10 relative overflow-hidden group shadow-2xl">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 opacity-50"></div>
+
+                <div className="flex items-center gap-3 mb-6 border-b border-zinc-800 pb-4">
+                  <div className="flex gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
+                    <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
+                    <div className="w-3 h-3 rounded-full bg-emerald-500/80"></div>
+                  </div>
+                  <span className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest ml-2 flex items-center gap-2">
+                    <Terminal size={12} /> engine/algorithm.go
+                  </span>
+                </div>
+
+                <pre className="font-mono text-sm md:text-base text-zinc-300 overflow-x-auto whitespace-pre-wrap leading-loose">
+                  <code className="text-indigo-400">func</code>{" "}
+                  <code className="text-blue-300 font-bold">CalculateElo</code>
+                  (OldRating, Performance{" "}
+                  <code className="text-indigo-400">float64</code>){" "}
+                  <code className="text-indigo-400">float64</code> {"{\n"}
+                  {"  "}RatingChange := (Performance - OldRating) /{" "}
+                  <code className="text-amber-300">2.0</code>
+                  {"\n"}
+                  {"  "}
+                  <code className="text-cyan-400">return</code> OldRating +
+                  RatingChange{"\n"}
+                  {"}"}
+                </pre>
+
+                <div className="mt-12 flex justify-center border-t border-zinc-800/50 pt-8">
+                  {!user ? (
+                    <SignUpButton mode="modal">
+                      <button className="flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-sm font-bold uppercase tracking-widest rounded-lg shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:shadow-[0_0_30px_rgba(79,70,229,0.6)] hover:-translate-y-1 transition-all cursor-pointer">
+                        Initialize Your Node{" "}
+                        <Zap size={18} className="text-white" />
+                      </button>
+                    </SignUpButton>
+                  ) : (
+                    <Link
+                      href="/arena"
+                      className="flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-sm font-bold uppercase tracking-widest rounded-lg shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:shadow-[0_0_30px_rgba(79,70,229,0.6)] hover:-translate-y-1 transition-all cursor-pointer"
+                    >
+                      Enter The Arena{" "}
+                      <Swords size={18} className="text-white" />
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </FadeIn>
 
             <FadeIn
               yOffset={30}
@@ -420,7 +516,7 @@ export default function NodeHub() {
           <footer className="w-full mt-24 text-center">
             <div className="flex items-center justify-center gap-2 text-zinc-600 font-mono text-[10px] uppercase tracking-widest">
               <Terminal size={12} />
-              <span>ELONODE CORE ENGINE v1.0</span>
+              <span>ELONODE CORE ENGINE v1.0.0</span>
             </div>
           </footer>
         </section>
