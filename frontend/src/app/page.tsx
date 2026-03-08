@@ -80,10 +80,8 @@ export default function NodeHub() {
 
   useEffect(() => {
     const syncUserToDatabase = async () => {
-      // If user data isn't loaded yet, do nothing
       if (!isLoaded) return;
 
-      // If there is NO user (public visitor), stop the loading spinner
       if (!user) {
         setIsSyncing(false);
         return;
@@ -137,7 +135,8 @@ export default function NodeHub() {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-zinc-500 font-mono text-sm uppercase tracking-widest gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-        Synchronizing Node Details...
+        Synchronizing Node Details :: It might take 50-60s to load cause it is
+        hosted on Render free tier cpu instatnce
       </div>
     );
   }
