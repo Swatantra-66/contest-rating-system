@@ -124,7 +124,7 @@ export default function Sidebar() {
                     : "border-transparent text-zinc-500 hover:text-zinc-300"
                 }`}
               >
-                Enter Arena
+                Join Contest
               </Link>
 
               <Link
