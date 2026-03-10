@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef, ReactNode } from "react";
 import Link from "next/link";
 import { useUser, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
-import { Orbitron } from "next/font/google";
+import UnicornScene from "unicornstudio-react";
+import BelowFold from "@/components/BelowFold";
 import {
   Swords,
   Trophy,
@@ -11,65 +12,8 @@ import {
   Loader2,
   Terminal,
   Zap,
-  Shield,
-  Network,
-  Cpu,
   ChevronDown,
 } from "lucide-react";
-import UnicornScene from "unicornstudio-react";
-
-const futuristicFont = Orbitron({
-  subsets: ["latin"],
-  weight: ["400", "700", "900"],
-});
-
-const FadeIn = ({
-  children,
-  delay = 0,
-  yOffset = 40,
-  className = "",
-}: {
-  children: ReactNode;
-  delay?: number;
-  yOffset?: number;
-  className?: string;
-}) => {
-  const [isVisible, setVisible] = useState(false);
-  const domRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setVisible(true);
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { rootMargin: "0px 0px -50px 0px" },
-    );
-
-    if (domRef.current) observer.observe(domRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div
-      ref={domRef}
-      className={`transition-all duration-[800ms] ease-out hardware-accelerated ${className}`}
-      style={{
-        opacity: isVisible ? 1 : 0,
-        transform: isVisible
-          ? "translateY(0) translateZ(0)"
-          : `translateY(${yOffset}px) translateZ(0)`,
-        transitionDelay: `${delay}ms`,
-      }}
-    >
-      {children}
-    </div>
-  );
-};
 
 export default function NodeHub() {
   const { user, isLoaded } = useUser();
@@ -135,8 +79,8 @@ export default function NodeHub() {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-zinc-500 font-mono text-sm uppercase tracking-widest gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-        Synchronizing Node Details :: It might take 50-60s to load cause it is
-        hosted on Render free tier cpu instatnce
+        Synchronizing Node Details :: It might take 20-30s to load cause it is
+        hosted on Render free tier cpu instance :)
       </div>
     );
   }
@@ -306,219 +250,7 @@ export default function NodeHub() {
             </button>
           </div>
         </section>
-
-        <section className="w-full bg-zinc-950 border-t border-zinc-800 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] pt-24 pb-32 pointer-events-auto hardware-accelerated">
-          <div className="max-w-6xl mx-auto px-6">
-            <FadeIn className="text-center mb-20 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-mono font-bold uppercase tracking-widest">
-                <Zap size={12} /> System Architecture
-              </div>
-              <h2
-                className={`${futuristicFont.className} text-3xl md:text-5xl font-black text-white uppercase tracking-tighter`}
-              >
-                Deterministic{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">
-                  Matchmaking
-                </span>
-              </h2>
-              <p className="text-zinc-400 text-sm font-mono leading-relaxed max-w-2xl mx-auto tracking-wide">
-                ELONODE evaluates combat metrics using a proprietary Go-based
-                rating algorithm. Participants battle in multi-node domains to
-                secure placement on the global hierarchy.
-              </p>
-            </FadeIn>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
-              <FadeIn
-                delay={100}
-                yOffset={50}
-                className="bg-zinc-900/40 border border-zinc-700/80 p-8 rounded-2xl hover:border-indigo-500/50 hover:bg-zinc-800/60 transition-all group h-full shadow-lg"
-              >
-                <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center border border-indigo-500/20 mb-6">
-                  <Cpu className="text-indigo-400 w-6 h-6 group-hover:scale-110 transition-transform" />
-                </div>
-                <h3
-                  className={`${futuristicFont.className} text-lg text-white tracking-widest uppercase mb-3`}
-                >
-                  Algorithmic Elo
-                </h3>
-                <p className="text-zinc-400 text-sm leading-relaxed">
-                  Ratings are calculated mathematically via Go-routines using
-                  dynamic percentile brackets to assure competitive integrity.
-                </p>
-              </FadeIn>
-
-              <FadeIn
-                delay={250}
-                yOffset={50}
-                className="bg-zinc-900/40 border border-zinc-700/80 p-8 rounded-2xl hover:border-amber-500/50 hover:bg-zinc-800/60 transition-all group h-full shadow-lg"
-              >
-                <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center border border-amber-500/20 mb-6">
-                  <Network className="text-amber-400 w-6 h-6 group-hover:scale-110 transition-transform" />
-                </div>
-                <h3
-                  className={`${futuristicFont.className} text-lg text-white tracking-widest uppercase mb-3`}
-                >
-                  Node Protocol
-                </h3>
-                <p className="text-zinc-400 text-sm leading-relaxed">
-                  Challenge the grid via 1v1 duels or multi-participant Royale
-                  events. Data is synchronized continuously to the frontend.
-                </p>
-              </FadeIn>
-
-              <FadeIn
-                delay={400}
-                yOffset={50}
-                className="bg-zinc-900/40 border border-zinc-700/80 p-8 rounded-2xl hover:border-cyan-500/50 hover:bg-zinc-800/60 transition-all group h-full shadow-lg"
-              >
-                <div className="w-12 h-12 bg-cyan-500/10 rounded-xl flex items-center justify-center border border-cyan-500/20 mb-6">
-                  <Shield className="text-cyan-400 w-6 h-6 group-hover:scale-110 transition-transform" />
-                </div>
-                <h3
-                  className={`${futuristicFont.className} text-lg text-white tracking-widest uppercase mb-3`}
-                >
-                  Immutable Logs
-                </h3>
-                <p className="text-zinc-400 text-sm leading-relaxed">
-                  Every encounter is logged securely. Track your performance
-                  trajectory and specific rating deviations in your Node
-                  Profile.
-                </p>
-              </FadeIn>
-            </div>
-
-            <FadeIn
-              delay={200}
-              yOffset={40}
-              className="w-full max-w-4xl mx-auto mb-32"
-            >
-              <div className="bg-zinc-950/80 border border-zinc-700/80 rounded-2xl p-6 md:p-10 relative overflow-hidden group shadow-2xl">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 opacity-50"></div>
-
-                <div className="flex items-center gap-3 mb-6 border-b border-zinc-800 pb-4">
-                  <div className="flex gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
-                    <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
-                    <div className="w-3 h-3 rounded-full bg-emerald-500/80"></div>
-                  </div>
-                  <span className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest ml-2 flex items-center gap-2">
-                    <Terminal size={12} /> engine/algorithm.go
-                  </span>
-                </div>
-
-                <pre className="font-mono text-sm md:text-base text-zinc-300 overflow-x-auto whitespace-pre-wrap leading-loose">
-                  <code className="text-indigo-400">func</code>{" "}
-                  <code className="text-blue-300 font-bold">CalculateElo</code>
-                  (OldRating, Performance{" "}
-                  <code className="text-indigo-400">float64</code>){" "}
-                  <code className="text-indigo-400">float64</code> {"{\n"}
-                  {"  "}RatingChange := (Performance - OldRating) /{" "}
-                  <code className="text-amber-300">2.0</code>
-                  {"\n"}
-                  {"  "}
-                  <code className="text-cyan-400">return</code> OldRating +
-                  RatingChange{"\n"}
-                  {"}"}
-                </pre>
-
-                <div className="mt-12 flex justify-center border-t border-zinc-800/50 pt-8">
-                  {!user ? (
-                    <SignUpButton mode="modal">
-                      <button className="flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-sm font-bold uppercase tracking-widest rounded-lg shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:shadow-[0_0_30px_rgba(79,70,229,0.6)] hover:-translate-y-1 transition-all cursor-pointer">
-                        Initialize Your Node{" "}
-                        <Zap size={18} className="text-white" />
-                      </button>
-                    </SignUpButton>
-                  ) : (
-                    <Link
-                      href="/arena"
-                      className="flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-sm font-bold uppercase tracking-widest rounded-lg shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:shadow-[0_0_30px_rgba(79,70,229,0.6)] hover:-translate-y-1 transition-all cursor-pointer"
-                    >
-                      Enter The Arena{" "}
-                      <Swords size={18} className="text-white" />
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </FadeIn>
-
-            <FadeIn
-              yOffset={30}
-              className="bg-zinc-900/20 border border-zinc-800/50 rounded-2xl p-8 md:p-12"
-            >
-              <div className="text-center mb-10">
-                <h2
-                  className={`${futuristicFont.className} text-2xl text-white tracking-widest uppercase mb-2`}
-                >
-                  The Tier Hierarchy
-                </h2>
-                <p className="text-zinc-500 text-[10px] font-mono tracking-[0.2em] uppercase">
-                  Base initialization rating is 1000.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                {[
-                  {
-                    name: "Newbie",
-                    color: "text-zinc-400 border-zinc-700 bg-zinc-900",
-                    range: "1000 - 1099",
-                  },
-                  {
-                    name: "Apprentice",
-                    color:
-                      "text-emerald-400 border-emerald-900/50 bg-emerald-950/30",
-                    range: "1100 - 1149",
-                  },
-                  {
-                    name: "Specialist",
-                    color: "text-cyan-400 border-cyan-900/50 bg-cyan-950/30",
-                    range: "1150 - 1199",
-                  },
-                  {
-                    name: "Expert",
-                    color: "text-blue-400 border-blue-900/50 bg-blue-950/30",
-                    range: "1200 - 1399",
-                  },
-                  {
-                    name: "Master",
-                    color:
-                      "text-purple-400 border-purple-900/50 bg-purple-950/30",
-                    range: "1400 - 1799",
-                  },
-                  {
-                    name: "Grandmaster",
-                    color:
-                      "text-rose-500 border-rose-900/50 bg-rose-950/30 shadow-[0_0_15px_rgba(244,63,94,0.3)]",
-                    range: "1800+",
-                  },
-                ].map((tier, idx) => (
-                  <div
-                    key={idx}
-                    className="flex flex-col items-center justify-center gap-3 p-4 border border-zinc-800/50 rounded-xl bg-zinc-950"
-                  >
-                    <span
-                      className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${tier.color}`}
-                    >
-                      {tier.name}
-                    </span>
-                    <span className="text-zinc-600 font-mono text-[10px] tracking-widest">
-                      {tier.range}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </FadeIn>
-          </div>
-
-          <footer className="w-full mt-24 text-center">
-            <div className="flex items-center justify-center gap-2 text-zinc-600 font-mono text-[10px] uppercase tracking-widest">
-              <Terminal size={12} />
-              <span>ELONODE CORE ENGINE v1.1</span>
-            </div>
-          </footer>
-        </section>
+        <BelowFold nodeId={nodeId} />
       </div>
     </>
   );
