@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Orbitron } from "next/font/google";
 import { ArrowLeft, ChevronRight, Zap } from "lucide-react";
+import Editor from "@monaco-editor/react";
 import Link from "next/link";
 
 const orbitron = Orbitron({
@@ -106,6 +107,7 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+// ── Avatar component ──────────────────────────────────────────────────────────
 function Avatar({
   name,
   imageUrl,
@@ -147,6 +149,9 @@ function Avatar({
   );
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// INNER COMPONENT (needs useSearchParams)
+// ═════════════════════════════════════════════════════════════════════════════
 function DuelRoomInner() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -180,6 +185,18 @@ function DuelRoomInner() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const opponentRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const DEFAULT_SNIPPETS: Record<string, string> = {
+    python3: "class Solution:\n    def solve(self):\n        pass\n",
+    javascript:
+      "/**\n * @return {any}\n */\nvar solve = function() {\n    \n};\n",
+    typescript: "function solve(): any {\n    \n};\n",
+    cpp: "#include <bits/stdc++.h>\nusing namespace std;\n\nclass Solution {\npublic:\n    void solve() {\n        \n    }\n};\n",
+    c: "#include <stdio.h>\n#include <stdlib.h>\n\nvoid solve() {\n    \n}\n",
+    java: "class Solution {\n    public void solve() {\n        \n    }\n}\n",
+    golang: "package main\n\nfunc solve() {\n    \n}\n",
+    rust: "impl Solution {\n    pub fn solve() {\n        \n    }\n}\n",
+  };
+
   const LC_LANG_MAP: Record<string, string> = {
     python: "python3",
     javascript: "javascript",
@@ -192,13 +209,14 @@ function DuelRoomInner() {
   };
 
   const snippetsRef = useRef<Record<string, string>>({});
-  const languageRef = useRef<string>("python");
+  const languageRef = useRef<string>("python"); // track language without causing re-renders
 
   const getStarterCode = useCallback((lang: string): string => {
+    const lcSlug = LC_LANG_MAP[lang] || "python3";
     return (
-      snippetsRef.current[LC_LANG_MAP[lang]] ||
-      snippetsRef.current["python3"] ||
-      "// Write your solution here"
+      snippetsRef.current[lcSlug] ||
+      DEFAULT_SNIPPETS[lcSlug] ||
+      "// Write your solution here\n"
     );
   }, []);
 
@@ -238,7 +256,7 @@ function DuelRoomInner() {
           leetcodeUrl: data.leetcode_url,
         };
         setProblem(p);
-        setCode(getStarterCode(languageRef.current));
+        setCode(getStarterCode(languageRef.current)); // use ref, not state
         setTimer(p.timerSecs);
         const exLines = data.examples
           .split("\n")
@@ -251,13 +269,15 @@ function DuelRoomInner() {
       }
     },
     [getStarterCode],
-  );
+  ); // NO language dependency here
 
   useEffect(() => {
     const init = async () => {
+      // ── Get opponent info from URL params ──
       const opponentName = searchParams.get("opponent") || "OPPONENT";
       const opponentId = searchParams.get("opponentId") || "";
 
+      // Try to get opponent's image from backend
       let opponentImageUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(opponentName)}&background=27272a&color=f87171&size=128&bold=true`;
       if (opponentId) {
         try {
@@ -266,10 +286,13 @@ function DuelRoomInner() {
             const u = await res.json();
             if (u.image_url) opponentImageUrl = u.image_url;
           }
-        } catch {}
+        } catch {
+          /* use default */
+        }
       }
       setOpponent({ name: opponentName, imageUrl: opponentImageUrl });
 
+      // ── Fetch problem ──
       try {
         const res = await fetch(`${API_BASE}duels/${duelId}`);
         if (res.ok) {
@@ -284,6 +307,7 @@ function DuelRoomInner() {
         await fetchProblem("Easy");
       }
 
+      // ── Get user rating ──
       try {
         const uid = localStorage.getItem("elonode_db_id");
         if (uid) {
@@ -293,7 +317,9 @@ function DuelRoomInner() {
             setOldRating(u.current_rating || 1000);
           }
         }
-      } catch {}
+      } catch {
+        /* ignore */
+      }
 
       setPhase("waiting");
     };
@@ -427,6 +453,7 @@ function DuelRoomInner() {
     setPhase(won ? "won" : "lost");
   }, [phase, problem, code, language, opponentStatus, oldRating]);
 
+  // ── LOADING ──
   if (phase === "loading" || fetchingProblem)
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -441,6 +468,7 @@ function DuelRoomInner() {
       </div>
     );
 
+  // ── WAITING ──
   if (phase === "waiting")
     return (
       <div className="min-h-screen bg-[#05060b] flex items-center justify-center font-mono">
@@ -464,6 +492,7 @@ function DuelRoomInner() {
             DUEL <span className="text-indigo-500">ROOM</span>
           </h1>
 
+          {/* Problem preview */}
           {problem && (
             <div className="my-6 px-5 py-4 rounded-xl bg-white/[0.02] border border-white/[0.05] text-left">
               <div className="flex items-center justify-between mb-2">
@@ -497,6 +526,7 @@ function DuelRoomInner() {
             </div>
           )}
 
+          {/* Difficulty selector */}
           <div className="mb-6">
             <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-3">
               Change Difficulty
@@ -527,6 +557,7 @@ function DuelRoomInner() {
             </div>
           </div>
 
+          {/* VS card — with real photos */}
           <div className="flex items-center justify-center gap-8 mb-6 bg-white/[0.02] border border-white/[0.05] rounded-2xl p-7">
             <div className="flex flex-col items-center gap-3">
               <Avatar
@@ -594,6 +625,7 @@ function DuelRoomInner() {
       </div>
     );
 
+  // ── COUNTDOWN ──
   if (phase === "countdown")
     return (
       <div className="min-h-screen bg-[#05060b] flex items-center justify-center">
@@ -623,6 +655,7 @@ function DuelRoomInner() {
       </div>
     );
 
+  // ── WIN / LOSS ──
   if (phase === "won" || phase === "lost") {
     const won = phase === "won";
     return (
@@ -643,6 +676,7 @@ function DuelRoomInner() {
             {won ? "VICTORY" : "DEFEATED"}
           </h1>
 
+          {/* Player photos on result screen */}
           <div className="flex items-center justify-center gap-6 mb-6">
             <div className="flex flex-col items-center gap-2">
               <Avatar
@@ -738,6 +772,7 @@ function DuelRoomInner() {
     );
   }
 
+  // ── DUELING ──
   const timerColor =
     timer < 60 ? "#f87171" : timer < 180 ? "#fbbf24" : "#4ade80";
   const diffColor = problem ? DIFF_COLOR[problem.difficulty] : "#4ade80";
@@ -753,6 +788,7 @@ function DuelRoomInner() {
         ::-webkit-scrollbar-thumb{background:#27272a;border-radius:2px}
       `}</style>
 
+      {/* Top bar */}
       <div className="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-black/40 backdrop-blur-sm flex-shrink-0">
         <div className="flex items-center gap-3">
           <Link
@@ -762,6 +798,7 @@ function DuelRoomInner() {
             <ArrowLeft size={14} />
           </Link>
           <div className="w-px h-4 bg-zinc-800" />
+          {/* My avatar */}
           <div className="flex items-center gap-2">
             <Avatar
               name={user?.username || "?"}
@@ -936,11 +973,26 @@ function DuelRoomInner() {
                 ))}
               </div>
               <span className="text-[9px] text-zinc-600 tracking-widest ml-2">
-                solution.py
+                solution.
+                {language === "python"
+                  ? "py"
+                  : language === "javascript"
+                    ? "js"
+                    : language === "typescript"
+                      ? "ts"
+                      : language === "cpp"
+                        ? "cpp"
+                        : language === "c"
+                          ? "c"
+                          : language === "java"
+                            ? "java"
+                            : language === "go"
+                              ? "go"
+                              : "rs"}
               </span>
             </div>
             <div className="flex items-center gap-3">
-              {opponentStatus === "typing" && (
+              {opponentStatus === "typing" && phase === "dueling" && (
                 <span className="text-[9px] text-amber-500 tracking-widest animate-pulse">
                   ⌨ Opponent typing...
                 </span>
@@ -973,38 +1025,65 @@ function DuelRoomInner() {
             </div>
           </div>
 
-          <div className="flex-1 relative overflow-hidden bg-[#07080d]">
-            <div className="absolute left-0 top-0 bottom-0 w-10 bg-black/20 border-r border-white/[0.03] flex flex-col pt-4 z-10 select-none overflow-hidden">
-              {code.split("\n").map((_, i) => (
-                <div
-                  key={i}
-                  className="h-6 flex items-center justify-end pr-3 text-[10px] text-zinc-700"
-                  style={{ fontFamily: "ui-monospace, monospace" }}
-                >
-                  {i + 1}
-                </div>
-              ))}
-            </div>
-            <textarea
+          {/* Monaco Editor */}
+          <div className="flex-1 overflow-hidden bg-[#1e1e1e]">
+            <Editor
+              height="100%"
+              language={
+                language === "cpp"
+                  ? "cpp"
+                  : language === "c"
+                    ? "c"
+                    : language === "python"
+                      ? "python"
+                      : language === "java"
+                        ? "java"
+                        : language === "go"
+                          ? "go"
+                          : language === "rust"
+                            ? "rust"
+                            : language === "typescript"
+                              ? "typescript"
+                              : "javascript"
+              }
               value={code}
-              onChange={(e) => {
-                setCode(e.target.value);
+              onChange={(val) => {
+                setCode(val || "");
                 setMyProgress(
                   Math.min(
                     90,
-                    (e.target.value.length /
+                    ((val || "").length /
                       ((problem?.starterCode.length || 100) * 2)) *
                       100,
                   ),
                 );
                 setErrorMsg("");
               }}
-              spellCheck={false}
-              className="absolute inset-0 bg-transparent text-zinc-200 text-[13px] w-full h-full border-0 pl-12 pr-4 pt-4 pb-4"
-              style={{
-                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                caretColor: "#6366f1",
-                lineHeight: "24px",
+              theme="vs-dark"
+              options={{
+                fontSize: 13,
+                fontFamily:
+                  "'JetBrains Mono', 'Fira Code', ui-monospace, monospace",
+                fontLigatures: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                lineNumbers: "on",
+                glyphMargin: false,
+                folding: false,
+                lineDecorationsWidth: 0,
+                lineNumbersMinChars: 3,
+                renderLineHighlight: "line",
+                cursorBlinking: "smooth",
+                cursorSmoothCaretAnimation: "on",
+                smoothScrolling: true,
+                padding: { top: 12, bottom: 12 },
+                scrollbar: {
+                  verticalScrollbarSize: 4,
+                  horizontalScrollbarSize: 4,
+                },
+                overviewRulerLanes: 0,
+                hideCursorInOverviewRuler: true,
+                overviewRulerBorder: false,
               }}
             />
           </div>
@@ -1108,6 +1187,9 @@ function DuelRoomInner() {
   );
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// EXPORTED COMPONENT — Suspense wrapper (required for useSearchParams)
+// ═════════════════════════════════════════════════════════════════════════════
 export default function DuelRoom() {
   return (
     <Suspense
