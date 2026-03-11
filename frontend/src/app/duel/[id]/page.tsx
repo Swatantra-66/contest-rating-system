@@ -7,6 +7,7 @@ import { Orbitron } from "next/font/google";
 import { ArrowLeft, ChevronRight, Zap } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import Link from "next/link";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 const orbitron = Orbitron({
   subsets: ["latin"],
@@ -107,7 +108,6 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-// ── Avatar component ──────────────────────────────────────────────────────────
 function Avatar({
   name,
   imageUrl,
@@ -149,9 +149,6 @@ function Avatar({
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// INNER COMPONENT (needs useSearchParams)
-// ═════════════════════════════════════════════════════════════════════════════
 function DuelRoomInner() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -181,9 +178,89 @@ function DuelRoomInner() {
   const [oldRating, setOldRating] = useState(1000);
   const [errorMsg, setErrorMsg] = useState("");
   const [fetchingProblem, setFetchingProblem] = useState(false);
+  const [iAmReady, setIAmReady] = useState(false);
+  const [opponentReady, setOpponentReady] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const opponentRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const myNodeId =
+    typeof window !== "undefined"
+      ? localStorage.getItem("elonode_db_id") || ""
+      : "";
+
+  const { send: wsSend } = useWebSocket({
+    userId: myNodeId,
+    userName: user?.username || user?.firstName || "unknown",
+    tier: "newbie",
+    imageUrl: user?.imageUrl || "",
+    enabled: !!myNodeId,
+    handlers: {
+      onReadyUpdate: (payload) => {
+        if (payload.contest_id !== duelId) return;
+        if (payload.user_id !== myNodeId) {
+          setOpponentReady(true);
+        }
+        if (payload.ready_count >= 2) {
+          startCountdown();
+        }
+      },
+      onDuelStart: (payload) => {
+        if (payload.contest_id === duelId) startCountdown();
+      },
+    },
+  });
+
+  const startCountdown = useCallback(() => {
+    setPhase("countdown");
+    let c = 3;
+    setCountdown(c);
+    const iv = setInterval(() => {
+      c--;
+      setCountdown(c);
+      if (c === 0) {
+        clearInterval(iv);
+        setPhase("dueling");
+        timerRef.current = setInterval(
+          () =>
+            setTimer((t) => {
+              if (t <= 1) {
+                clearInterval(timerRef.current!);
+                setPhase("lost");
+                return 0;
+              }
+              return t - 1;
+            }),
+          1000,
+        );
+        let prog = 0;
+        opponentRef.current = setInterval(() => {
+          prog += Math.random() * 3 + 0.5;
+          if (prog >= 95) {
+            prog = 95;
+            clearInterval(opponentRef.current!);
+          }
+          setOpponentProgress(Math.round(Math.min(95, prog)));
+        }, 1500);
+      }
+    }, 1000);
+  }, []);
+
+  const handleReady = useCallback(() => {
+    if (!problem || iAmReady) return;
+    setIAmReady(true);
+    wsSend("ready", { contest_id: duelId, user_id: myNodeId });
+    if (opponentReady) {
+      startCountdown();
+    }
+  }, [
+    problem,
+    iAmReady,
+    opponentReady,
+    wsSend,
+    duelId,
+    myNodeId,
+    startCountdown,
+  ]);
 
   const DEFAULT_SNIPPETS: Record<string, string> = {
     python3: "class Solution:\n    def solve(self):\n        pass\n",
@@ -209,7 +286,7 @@ function DuelRoomInner() {
   };
 
   const snippetsRef = useRef<Record<string, string>>({});
-  const languageRef = useRef<string>("python"); // track language without causing re-renders
+  const languageRef = useRef<string>("python");
 
   const getStarterCode = useCallback((lang: string): string => {
     const lcSlug = LC_LANG_MAP[lang] || "python3";
@@ -256,7 +333,7 @@ function DuelRoomInner() {
           leetcodeUrl: data.leetcode_url,
         };
         setProblem(p);
-        setCode(getStarterCode(languageRef.current)); // use ref, not state
+        setCode(getStarterCode(languageRef.current));
         setTimer(p.timerSecs);
         const exLines = data.examples
           .split("\n")
@@ -269,15 +346,13 @@ function DuelRoomInner() {
       }
     },
     [getStarterCode],
-  ); // NO language dependency here
+  );
 
   useEffect(() => {
     const init = async () => {
-      // ── Get opponent info from URL params ──
       const opponentName = searchParams.get("opponent") || "OPPONENT";
       const opponentId = searchParams.get("opponentId") || "";
 
-      // Try to get opponent's image from backend
       let opponentImageUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(opponentName)}&background=27272a&color=f87171&size=128&bold=true`;
       if (opponentId) {
         try {
@@ -286,13 +361,10 @@ function DuelRoomInner() {
             const u = await res.json();
             if (u.image_url) opponentImageUrl = u.image_url;
           }
-        } catch {
-          /* use default */
-        }
+        } catch {}
       }
       setOpponent({ name: opponentName, imageUrl: opponentImageUrl });
 
-      // ── Fetch problem ──
       try {
         const res = await fetch(`${API_BASE}duels/${duelId}`);
         if (res.ok) {
@@ -307,7 +379,6 @@ function DuelRoomInner() {
         await fetchProblem("Easy");
       }
 
-      // ── Get user rating ──
       try {
         const uid = localStorage.getItem("elonode_db_id");
         if (uid) {
@@ -317,9 +388,7 @@ function DuelRoomInner() {
             setOldRating(u.current_rating || 1000);
           }
         }
-      } catch {
-        /* ignore */
-      }
+      } catch {}
 
       setPhase("waiting");
     };
@@ -333,47 +402,6 @@ function DuelRoomInner() {
     },
     [],
   );
-
-  const startDuel = useCallback(() => {
-    if (!problem) return;
-    setPhase("countdown");
-    let c = 3;
-    setCountdown(c);
-    const iv = setInterval(() => {
-      c--;
-      setCountdown(c);
-      if (c === 0) {
-        clearInterval(iv);
-        setPhase("dueling");
-        timerRef.current = setInterval(
-          () =>
-            setTimer((t) => {
-              if (t <= 1) {
-                clearInterval(timerRef.current!);
-                setPhase("lost");
-                return 0;
-              }
-              return t - 1;
-            }),
-          1000,
-        );
-        setTimeout(() => setOpponentStatus("typing"), 4000);
-        let prog = 0;
-        opponentRef.current = setInterval(() => {
-          prog += Math.random() * 4 + 1;
-          if (prog >= 100) {
-            prog = 100;
-            clearInterval(opponentRef.current!);
-          }
-          setOpponentProgress(Math.round(Math.min(100, prog)));
-        }, 1200);
-        setTimeout(
-          () => setOpponentStatus("submitted"),
-          problem.timerSecs * 0.6 * 1000,
-        );
-      }
-    }, 1000);
-  }, [problem]);
 
   const submitSolution = useCallback(async () => {
     if (phase !== "dueling" || !problem) return;
@@ -453,7 +481,6 @@ function DuelRoomInner() {
     setPhase(won ? "won" : "lost");
   }, [phase, problem, code, language, opponentStatus, oldRating]);
 
-  // ── LOADING ──
   if (phase === "loading" || fetchingProblem)
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -468,7 +495,6 @@ function DuelRoomInner() {
       </div>
     );
 
-  // ── WAITING ──
   if (phase === "waiting")
     return (
       <div className="min-h-screen bg-[#05060b] flex items-center justify-center font-mono">
@@ -492,7 +518,6 @@ function DuelRoomInner() {
             DUEL <span className="text-indigo-500">ROOM</span>
           </h1>
 
-          {/* Problem preview */}
           {problem && (
             <div className="my-6 px-5 py-4 rounded-xl bg-white/[0.02] border border-white/[0.05] text-left">
               <div className="flex items-center justify-between mb-2">
@@ -526,7 +551,6 @@ function DuelRoomInner() {
             </div>
           )}
 
-          {/* Difficulty selector */}
           <div className="mb-6">
             <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-3">
               Change Difficulty
@@ -557,7 +581,6 @@ function DuelRoomInner() {
             </div>
           </div>
 
-          {/* VS card — with real photos */}
           <div className="flex items-center justify-center gap-8 mb-6 bg-white/[0.02] border border-white/[0.05] rounded-2xl p-7">
             <div className="flex flex-col items-center gap-3">
               <Avatar
@@ -604,28 +627,43 @@ function DuelRoomInner() {
               {errorMsg}
             </p>
           )}
+
+          {opponentReady && !iAmReady && (
+            <p className="text-amber-400 text-[10px] tracking-widest uppercase mb-3 animate-pulse">
+              Opponent is ready — waiting for you!
+            </p>
+          )}
+          {iAmReady && !opponentReady && (
+            <p className="text-zinc-500 text-[10px] tracking-widest uppercase mb-3 animate-pulse">
+              Waiting for opponent to ready up...
+            </p>
+          )}
+
           <button
-            onClick={startDuel}
-            disabled={!problem || fetchingProblem}
+            onClick={handleReady}
+            disabled={!problem || fetchingProblem || iAmReady}
             className="w-full py-4 rounded-xl text-white font-mono text-[11px] font-bold uppercase tracking-widest border-0 cursor-pointer transition-all disabled:opacity-40"
             style={{
-              background: "linear-gradient(135deg,#6366f1,#4f46e5)",
-              boxShadow:
-                "0 0 0 1px rgba(99,102,241,0.4), 0 12px 40px rgba(99,102,241,0.35)",
+              background: iAmReady
+                ? "rgba(74,222,128,0.2)"
+                : "linear-gradient(135deg,#6366f1,#4f46e5)",
+              boxShadow: iAmReady
+                ? "0 0 0 1px rgba(74,222,128,0.4)"
+                : "0 0 0 1px rgba(99,102,241,0.4), 0 12px 40px rgba(99,102,241,0.35)",
             }}
             onMouseEnter={(e) =>
               !fetchingProblem &&
+              !iAmReady &&
               (e.currentTarget.style.transform = "translateY(-2px)")
             }
             onMouseLeave={(e) => (e.currentTarget.style.transform = "")}
           >
-            ⚔ I&apos;M READY — START DUEL
+            {iAmReady ? "✓ READY — Waiting for opponent..." : "⚔ I'M READY"}
           </button>
         </div>
       </div>
     );
 
-  // ── COUNTDOWN ──
   if (phase === "countdown")
     return (
       <div className="min-h-screen bg-[#05060b] flex items-center justify-center">
@@ -655,7 +693,6 @@ function DuelRoomInner() {
       </div>
     );
 
-  // ── WIN / LOSS ──
   if (phase === "won" || phase === "lost") {
     const won = phase === "won";
     return (
@@ -676,7 +713,6 @@ function DuelRoomInner() {
             {won ? "VICTORY" : "DEFEATED"}
           </h1>
 
-          {/* Player photos on result screen */}
           <div className="flex items-center justify-center gap-6 mb-6">
             <div className="flex flex-col items-center gap-2">
               <Avatar
@@ -772,7 +808,6 @@ function DuelRoomInner() {
     );
   }
 
-  // ── DUELING ──
   const timerColor =
     timer < 60 ? "#f87171" : timer < 180 ? "#fbbf24" : "#4ade80";
   const diffColor = problem ? DIFF_COLOR[problem.difficulty] : "#4ade80";
@@ -788,7 +823,6 @@ function DuelRoomInner() {
         ::-webkit-scrollbar-thumb{background:#27272a;border-radius:2px}
       `}</style>
 
-      {/* Top bar */}
       <div className="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-black/40 backdrop-blur-sm flex-shrink-0">
         <div className="flex items-center gap-3">
           <Link
@@ -798,7 +832,6 @@ function DuelRoomInner() {
             <ArrowLeft size={14} />
           </Link>
           <div className="w-px h-4 bg-zinc-800" />
-          {/* My avatar */}
           <div className="flex items-center gap-2">
             <Avatar
               name={user?.username || "?"}
@@ -812,7 +845,6 @@ function DuelRoomInner() {
           <span className={`${orbitron.className} text-xs text-zinc-700`}>
             VS
           </span>
-          {/* Opponent avatar */}
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold tracking-widest text-zinc-300 uppercase">
               {opponent.name}
@@ -854,7 +886,6 @@ function DuelRoomInner() {
         </div>
       </div>
 
-      {/* Progress bars */}
       <div className="flex gap-px h-[3px] flex-shrink-0">
         <div className="flex-1 bg-zinc-900 relative overflow-hidden">
           <div
@@ -871,7 +902,6 @@ function DuelRoomInner() {
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* LEFT — Problem */}
         <div className="w-[42%] border-r border-white/5 flex flex-col overflow-hidden">
           <div className="flex border-b border-white/5 px-4 flex-shrink-0">
             {(["problem", "constraints"] as const).map((t) => (
@@ -959,7 +989,6 @@ function DuelRoomInner() {
           </div>
         </div>
 
-        {/* RIGHT — Editor */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 flex-shrink-0">
             <div className="flex items-center gap-2">
@@ -992,11 +1021,6 @@ function DuelRoomInner() {
               </span>
             </div>
             <div className="flex items-center gap-3">
-              {opponentStatus === "typing" && phase === "dueling" && (
-                <span className="text-[9px] text-amber-500 tracking-widest animate-pulse">
-                  ⌨ Opponent typing...
-                </span>
-              )}
               {opponentStatus === "submitted" && (
                 <span className="text-[9px] text-rose-400 tracking-widest">
                   ✓ Opponent submitted!
@@ -1025,7 +1049,6 @@ function DuelRoomInner() {
             </div>
           </div>
 
-          {/* Monaco Editor */}
           <div className="flex-1 overflow-hidden bg-[#1e1e1e]">
             <Editor
               height="100%"
@@ -1187,9 +1210,6 @@ function DuelRoomInner() {
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// EXPORTED COMPONENT — Suspense wrapper (required for useSearchParams)
-// ═════════════════════════════════════════════════════════════════════════════
 export default function DuelRoom() {
   return (
     <Suspense
