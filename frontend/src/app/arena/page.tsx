@@ -848,43 +848,6 @@ export default function ArenaPage() {
                     }}
                   />
 
-                  {isOnline && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 12,
-                        right: 12,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                        padding: "2px 8px",
-                        borderRadius: 20,
-                        background: "rgba(74,222,128,0.1)",
-                        border: "1px solid rgba(74,222,128,0.2)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 5,
-                          height: 5,
-                          borderRadius: "50%",
-                          background: "#4ade80",
-                          animation: "pulse 2s ease infinite",
-                        }}
-                      />
-                      <span
-                        style={{
-                          fontSize: 8,
-                          color: "#4ade80",
-                          letterSpacing: "0.15em",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        Online
-                      </span>
-                    </div>
-                  )}
-
                   <div
                     style={{
                       display: "flex",
@@ -940,32 +903,73 @@ export default function ArenaPage() {
                         </div>
                         <div
                           style={{
-                            display: "inline-flex",
+                            display: "flex",
                             alignItems: "center",
-                            gap: 4,
+                            gap: 6,
                             marginTop: 3,
-                            padding: "2px 8px",
-                            borderRadius: 4,
-                            background: tier.bg,
-                            border: `1px solid ${tier.color}30`,
                           }}
                         >
-                          <span
+                          <div
                             style={{
-                              fontSize: 8,
-                              fontWeight: 900,
-                              letterSpacing: "0.15em",
-                              color: tier.color,
-                              textTransform: "uppercase",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              padding: "2px 8px",
+                              borderRadius: 4,
+                              background: tier.bg,
+                              border: `1px solid ${tier.color}30`,
                             }}
                           >
-                            {opponent.tier}
-                          </span>
+                            <span
+                              style={{
+                                fontSize: 8,
+                                fontWeight: 900,
+                                letterSpacing: "0.15em",
+                                color: tier.color,
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              {opponent.tier}
+                            </span>
+                          </div>
+                          {isOnline && (
+                            <div
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                padding: "2px 8px",
+                                borderRadius: 4,
+                                background: "rgba(74,222,128,0.1)",
+                                border: "1px solid rgba(74,222,128,0.2)",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: 4,
+                                  height: 4,
+                                  borderRadius: "50%",
+                                  background: "#4ade80",
+                                  animation: "pulse 2s ease infinite",
+                                }}
+                              />
+                              <span
+                                style={{
+                                  fontSize: 8,
+                                  color: "#4ade80",
+                                  letterSpacing: "0.15em",
+                                  textTransform: "uppercase",
+                                }}
+                              >
+                                Online
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ textAlign: "right" }}>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <div
                         className={orbitron.className}
                         style={{
