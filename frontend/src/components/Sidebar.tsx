@@ -24,20 +24,15 @@ export default function Sidebar() {
     total_nodes: 0,
     active_contests: 0,
     average_elo: 0,
+    live_nodes: 0,
   });
 
   const [isOnline, setIsOnline] = useState(true);
   const [nodeId, setNodeId] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchStoredId = async () => {
-      const storedId = localStorage.getItem("elonode_db_id");
-      if (storedId) {
-        setNodeId(storedId);
-      }
-    };
-
-    fetchStoredId();
+    const storedId = localStorage.getItem("elonode_db_id");
+    if (storedId) setNodeId(storedId);
   }, []);
 
   useEffect(() => {
@@ -50,6 +45,7 @@ export default function Sidebar() {
             total_nodes: data.total_nodes,
             active_contests: data.active_contests,
             average_elo: data.average_elo,
+            live_nodes: data.live_nodes || 0,
           });
         }
 
@@ -57,14 +53,13 @@ export default function Sidebar() {
           `${process.env.NEXT_PUBLIC_API_URL}health`,
         );
         setIsOnline(healthRes.ok);
-      } catch (err) {
-        console.error("System sync failed", err);
+      } catch {
         setIsOnline(false);
       }
     };
 
     fetchSystemData();
-    const interval = setInterval(fetchSystemData, 30000);
+    const interval = setInterval(fetchSystemData, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -104,11 +99,7 @@ export default function Sidebar() {
 
               <Link
                 href={isAdmin ? "/admin" : "#"}
-                className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-1 flex items-center gap-3 ${
-                  pathname === "/admin"
-                    ? "border-white text-white"
-                    : "border-transparent text-zinc-500 hover:text-zinc-300"
-                }`}
+                className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-1 flex items-center gap-3 ${pathname === "/admin" ? "border-white text-white" : "border-transparent text-zinc-500 hover:text-zinc-300"}`}
               >
                 <span>Admin Panel</span>
                 {!isAdmin && (
@@ -118,44 +109,28 @@ export default function Sidebar() {
 
               <Link
                 href="/arena"
-                className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-1 flex items-center gap-3 ${
-                  pathname === "/arena"
-                    ? "border-white text-white"
-                    : "border-transparent text-zinc-500 hover:text-zinc-300"
-                }`}
+                className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-1 flex items-center gap-3 ${pathname === "/arena" ? "border-white text-white" : "border-transparent text-zinc-500 hover:text-zinc-300"}`}
               >
                 Join Contest
               </Link>
 
               <Link
                 href="/leaderboard"
-                className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-1 flex items-center gap-3 ${
-                  pathname === "/leaderboard"
-                    ? "border-white text-white"
-                    : "border-transparent text-zinc-500 hover:text-zinc-300"
-                }`}
+                className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-1 flex items-center gap-3 ${pathname === "/leaderboard" ? "border-white text-white" : "border-transparent text-zinc-500 hover:text-zinc-300"}`}
               >
                 Leaderboard
               </Link>
 
               <Link
                 href="/contests"
-                className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-1 flex items-center gap-3 ${
-                  pathname === "/contests"
-                    ? "border-white text-white"
-                    : "border-transparent text-zinc-500 hover:text-zinc-300"
-                }`}
+                className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-1 flex items-center gap-3 ${pathname === "/contests" ? "border-white text-white" : "border-transparent text-zinc-500 hover:text-zinc-300"}`}
               >
                 Contest Log
               </Link>
 
               <Link
                 href="/history"
-                className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-1 flex items-center gap-3 ${
-                  pathname === "/history"
-                    ? "border-white text-white"
-                    : "border-transparent text-zinc-500 hover:text-zinc-300"
-                }`}
+                className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-1 flex items-center gap-3 ${pathname === "/history" ? "border-white text-white" : "border-transparent text-zinc-500 hover:text-zinc-300"}`}
               >
                 Rating History
               </Link>
@@ -182,6 +157,21 @@ export default function Sidebar() {
                 </div>
 
                 <div className="flex items-center gap-2 group">
+                  <Zap
+                    size={14}
+                    className={`group-hover:text-zinc-500 transition-colors ${stats.live_nodes > 0 ? "text-emerald-400" : "text-zinc-700"}`}
+                  />
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-tighter">
+                      Live Nodes:
+                    </span>
+                    <span className="text-xs text-zinc-300 font-mono">
+                      {stats.live_nodes}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 group">
                   <Trophy
                     size={14}
                     className="text-zinc-700 group-hover:text-zinc-500 transition-colors"
@@ -192,21 +182,6 @@ export default function Sidebar() {
                     </span>
                     <span className="text-xs text-zinc-300 font-mono">
                       {stats.average_elo}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 group">
-                  <Zap
-                    size={14}
-                    className="text-zinc-700 group-hover:text-zinc-500 transition-colors"
-                  />
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-tighter">
-                      Active Contests:
-                    </span>
-                    <span className="text-xs text-zinc-300 font-mono">
-                      {stats.active_contests}
                     </span>
                   </div>
                 </div>
@@ -229,22 +204,16 @@ export default function Sidebar() {
             <div className="flex items-center gap-3 px-2 mb-6 border-t border-zinc-900 pt-6">
               <div className="relative">
                 <div
-                  className={`w-2.5 h-2.5 rounded-full ${
-                    isOnline
-                      ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-                      : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"
-                  }`}
+                  className={`w-2.5 h-2.5 rounded-full ${isOnline ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"}`}
                 />
                 {isOnline && (
                   <div className="absolute inset-0 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping opacity-75" />
                 )}
               </div>
               <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-[10px] font-bold text-zinc-200 uppercase tracking-tighter">
-                    {isOnline ? "Engine Healthy" : "Engine Offline"}
-                  </p>
-                </div>
+                <p className="text-[10px] font-bold text-zinc-200 uppercase tracking-tighter">
+                  {isOnline ? "Engine Healthy" : "Engine Offline"}
+                </p>
                 <p className="text-[9px] text-zinc-600 font-mono tracking-tighter">
                   {isOnline
                     ? "RENDER :: DB_CONNECTED"
@@ -256,7 +225,6 @@ export default function Sidebar() {
             <div className="border-t border-zinc-900 pt-4 px-2 space-y-4">
               <SignOutButton>
                 <button className="flex items-center gap-3 w-full p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 transition-all rounded-md group cursor-pointer">
-                  {" "}
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="16"
