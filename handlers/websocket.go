@@ -48,6 +48,12 @@ type ReadyPayload struct {
 	UserID    string `json:"user_id"`
 }
 
+type LeavePayload struct {
+	ContestID string `json:"contest_id"`
+	UserID    string `json:"user_id"`
+	ToID      string `json:"to_id"`
+}
+
 type Client struct {
 	UserID   string
 	UserName string
@@ -110,9 +116,8 @@ type WSHub struct {
 	mu         sync.RWMutex
 	register   chan *Client
 	unregister chan *Client
-
-	readyMap map[string]map[string]bool
-	readyMu  sync.Mutex
+	readyMap   map[string]map[string]bool
+	readyMu    sync.Mutex
 }
 
 func NewWSHub() *WSHub {
@@ -127,13 +132,7 @@ func NewWSHub() *WSHub {
 func (h *WSHub) OnlineCount() int {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	count := 0
-	for id := range h.clients {
-		if id != "" && id != "null" && id != "undefined" {
-			count++
-		}
-	}
-	return count
+	return len(h.clients)
 }
 
 func (h *WSHub) Run() {
@@ -141,17 +140,13 @@ func (h *WSHub) Run() {
 		select {
 		case c := <-h.register:
 			h.mu.Lock()
-			if oldClient, ok := h.clients[c.UserID]; ok {
-				close(oldClient.Send)
-				oldClient.Conn.Close()
-			}
 			h.clients[c.UserID] = c
 			h.mu.Unlock()
 			h.broadcastOnlineUsers()
 
 		case c := <-h.unregister:
 			h.mu.Lock()
-			if currentClient, ok := h.clients[c.UserID]; ok && currentClient == c {
+			if _, ok := h.clients[c.UserID]; ok {
 				delete(h.clients, c.UserID)
 				close(c.Send)
 			}
@@ -186,17 +181,15 @@ func (h *WSHub) broadcast(msg []byte) {
 
 func (h *WSHub) broadcastOnlineUsers() {
 	h.mu.RLock()
-	users := make([]map[string]interface{}, 0)
-	for id, c := range h.clients {
-		if id != "" && id != "null" && id != "undefined" {
-			users = append(users, map[string]interface{}{
-				"user_id":   c.UserID,
-				"user_name": c.UserName,
-				"rating":    c.Rating,
-				"tier":      c.Tier,
-				"image_url": c.ImageURL,
-			})
-		}
+	users := make([]map[string]interface{}, 0, len(h.clients))
+	for _, c := range h.clients {
+		users = append(users, map[string]interface{}{
+			"user_id":   c.UserID,
+			"user_name": c.UserName,
+			"rating":    c.Rating,
+			"tier":      c.Tier,
+			"image_url": c.ImageURL,
+		})
 	}
 	h.mu.RUnlock()
 
@@ -266,6 +259,30 @@ func (h *WSHub) handleMessage(c *Client, data []byte) {
 			startMsg, _ := json.Marshal(WSMessage{Type: "duel_start", Payload: startPayload})
 			h.broadcast(startMsg)
 		}
+
+	case "leave":
+		var p LeavePayload
+		if err := json.Unmarshal(msg.Payload, &p); err != nil {
+			return
+		}
+		payload, _ := json.Marshal(map[string]interface{}{
+			"contest_id": p.ContestID,
+			"user_id":    p.UserID,
+		})
+		fwd, _ := json.Marshal(WSMessage{Type: "opponent_left", Payload: payload})
+		h.sendTo(p.ToID, fwd)
+
+	case "won":
+		var p struct {
+			ContestID string `json:"contest_id"`
+			ToID      string `json:"to_id"`
+		}
+		if err := json.Unmarshal(msg.Payload, &p); err != nil {
+			return
+		}
+		payload, _ := json.Marshal(map[string]string{"contest_id": p.ContestID})
+		fwd, _ := json.Marshal(WSMessage{Type: "opponent_won", Payload: payload})
+		h.sendTo(p.ToID, fwd)
 	}
 }
 
