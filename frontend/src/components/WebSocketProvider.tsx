@@ -268,12 +268,15 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     [router],
   );
 
+  // FIX: Use activeId so it falls back to the Clerk user ID if local storage is slow!
+  const activeId = myNodeId || user?.id;
+
   const { send, connected } = useWebSocket({
-    userId: myNodeId || "",
+    userId: activeId || "",
     userName: user?.username || user?.firstName || "Unknown",
     tier: myTier,
     imageUrl: user?.imageUrl || "",
-    enabled: !!myNodeId && isLoaded && myNodeId !== "null",
+    enabled: !!activeId && isLoaded && activeId !== "null",
     handlers: {
       onOnlineUsers: handleOnlineUsers,
       onChallengeReceived: handleChallengeRecv,
@@ -286,7 +289,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     send("challenge_response", {
       contest_id: pendingChallenge.contest_id,
       from_id: pendingChallenge.from_id,
-      to_id: myNodeId,
+      to_id: activeId,
       accepted: true,
     });
     const contestId = pendingChallenge.contest_id;
@@ -296,18 +299,18 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     router.push(
       `/duel/${contestId}?opponent=${opponentName}&opponentId=${opponentId}`,
     );
-  }, [pendingChallenge, myNodeId, router, send]);
+  }, [pendingChallenge, activeId, router, send]);
 
   const handleDecline = useCallback(() => {
     if (!pendingChallenge) return;
     send("challenge_response", {
       contest_id: pendingChallenge.contest_id,
       from_id: pendingChallenge.from_id,
-      to_id: myNodeId,
+      to_id: activeId,
       accepted: false,
     });
     setPendingChallenge(null);
-  }, [pendingChallenge, myNodeId, send]);
+  }, [pendingChallenge, activeId, send]);
 
   return (
     <WSContext.Provider
