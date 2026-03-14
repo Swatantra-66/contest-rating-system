@@ -16,6 +16,8 @@ export interface ChallengePayload {
   from_rating: number;
   to_id: string;
   contest_id: string;
+  difficulty: string;
+  mode: string;
 }
 
 export interface WSHandlers {
@@ -33,6 +35,8 @@ export interface WSHandlers {
     user_id: string;
   }) => void;
   onDuelStart?: (payload: { contest_id: string }) => void;
+  onOpponentLeft?: (payload: { contest_id: string; user_id: string }) => void;
+  onOpponentWon?: (payload: { contest_id: string }) => void;
 }
 
 export function useWebSocket(params: {
@@ -88,6 +92,12 @@ export function useWebSocket(params: {
             break;
           case "duel_start":
             params.handlers.onDuelStart?.(payload);
+            break;
+          case "opponent_left":
+            params.handlers.onOpponentLeft?.(payload);
+            break;
+          case "opponent_won":
+            params.handlers.onOpponentWon?.(payload);
             break;
         }
       } catch {}
