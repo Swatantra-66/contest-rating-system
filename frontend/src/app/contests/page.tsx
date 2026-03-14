@@ -255,7 +255,7 @@ export default function ContestsPage() {
                 <th className="p-4 font-bold">Contest Name</th>
                 <th className="p-4 font-bold text-center">Participants</th>
                 <th className="p-4 font-bold text-center">Created</th>
-                <th className="p-4 font-bold text-right">Status</th>
+                <th className="p-4 font-bold text-center">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-900">
@@ -300,7 +300,9 @@ export default function ContestsPage() {
                       </div>
                     </td>
                     <td className="p-4 font-bold text-zinc-100 uppercase tracking-tight text-sm">
-                      {contest.name || (
+                      {contest.name ? (
+                        contest.name.replace(/^1v1:\s*/i, "")
+                      ) : (
                         <span className="text-zinc-600 font-mono text-[10px]">
                           UNREGISTERED_BOUT
                         </span>
@@ -312,8 +314,8 @@ export default function ContestsPage() {
                     <td className="p-4 text-center">
                       <ContestDate dateStr={contest.created_at} />
                     </td>
-                    <td className="p-4 w-48">
-                      <div className="flex items-center justify-end gap-3">
+                    <td className="p-4 w-48 text-center">
+                      <div className="flex items-center justify-center gap-3">
                         <span
                           className={`flex items-center justify-center h-6 px-2 text-[10px] leading-none font-black uppercase rounded-sm border ${
                             contest.finalized
