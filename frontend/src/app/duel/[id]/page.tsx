@@ -28,6 +28,7 @@ type Phase =
   | "lost";
 type TestStatus = "pending" | "running" | "passed" | "failed";
 type Difficulty = "Easy" | "Medium" | "Hard";
+type ProblemMode = "same" | "random";
 
 interface Problem {
   slug: string;
@@ -44,6 +45,7 @@ interface Problem {
 interface OpponentInfo {
   name: string;
   imageUrl: string;
+  id: string;
 }
 
 const DIFF_COLOR: Record<Difficulty, string> = {
@@ -63,6 +65,82 @@ const LANGUAGE_IDS: Record<string, number> = {
 };
 const fmt = (s: number) =>
   `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
+const DEFAULT_SNIPPETS: Record<string, string> = {
+  python3: `class Solution:
+    def solve(self, nums: list[int]) -> int:
+        pass
+`,
+  javascript: `/**
+ * @param {number[]} nums
+ * @return {number}
+ */
+var solve = function(nums) {
+    
+};
+`,
+  typescript: `function solve(nums: number[]): number {
+    
+};
+`,
+  cpp: `#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    int solve(vector<int>& nums) {
+        
+    }
+};
+`,
+  c: `#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int solve(int* nums, int numsSize) {
+    
+}
+
+int main() {
+    return 0;
+}
+`,
+  java: `class Solution {
+    public int solve(int[] nums) {
+        
+    }
+}
+`,
+  golang: `package main
+
+import "fmt"
+
+func solve(nums []int) int {
+    
+}
+
+func main() {
+    fmt.Println(solve([]int{}))
+}
+`,
+  rust: `impl Solution {
+    pub fn solve(nums: Vec<i32>) -> i32 {
+        
+    }
+}
+`,
+};
+
+const LC_LANG_MAP: Record<string, string> = {
+  python: "python3",
+  javascript: "javascript",
+  typescript: "typescript",
+  cpp: "cpp",
+  c: "c",
+  java: "java",
+  go: "golang",
+  rust: "rust",
+};
 
 async function runCode(sourceCode: string, language: string, stdin: string) {
   try {
@@ -149,6 +227,24 @@ function Avatar({
   );
 }
 
+async function finalizeContest(
+  duelId: string,
+  winnerId: string,
+  loserId: string,
+  apiBase: string,
+) {
+  try {
+    await fetch(`${apiBase}contests/${duelId}/finalize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify([
+        { user_id: winnerId, rank: 1 },
+        { user_id: loserId, rank: 2 },
+      ]),
+    });
+  } catch {}
+}
+
 function DuelRoomInner() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -159,6 +255,7 @@ function DuelRoomInner() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [problem, setProblem] = useState<Problem | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>("Easy");
+  const [problemMode, setProblemMode] = useState<ProblemMode>("same");
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("python");
   const [timer, setTimer] = useState(900);
@@ -168,10 +265,11 @@ function DuelRoomInner() {
   const [opponent, setOpponent] = useState<OpponentInfo>({
     name: "OPPONENT",
     imageUrl: "",
+    id: "",
   });
-  const [opponentStatus, setOpponentStatus] = useState<
-    "waiting" | "typing" | "submitted"
-  >("waiting");
+  const [opponentStatus, setOpponentStatus] = useState<"waiting" | "submitted">(
+    "waiting",
+  );
   const [myProgress, setMyProgress] = useState(0);
   const [opponentProgress, setOpponentProgress] = useState(0);
   const [ratingChange, setRatingChange] = useState(0);
@@ -180,43 +278,22 @@ function DuelRoomInner() {
   const [fetchingProblem, setFetchingProblem] = useState(false);
   const [iAmReady, setIAmReady] = useState(false);
   const [opponentReady, setOpponentReady] = useState(false);
-  const [opponentLeft, setOpponentLeft] = useState(false);
   const [editorLocked, setEditorLocked] = useState(false);
-  const [winnerMsg, setWinnerMsg] = useState("");
+  const [resultMsg, setResultMsg] = useState("");
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const opponentRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const snippetsRef = useRef<Record<string, string>>({});
+  const languageRef = useRef<string>("python");
   const myNodeId =
     typeof window !== "undefined"
       ? localStorage.getItem("elonode_db_id") || ""
       : "";
 
-  const { send: wsSend, connected: wsConnected } = useWebSocket({
-    userId: myNodeId,
-    userName: user?.username || user?.firstName || "unknown",
-    tier: "newbie",
-    imageUrl: user?.imageUrl || "",
-    enabled: !!myNodeId,
-    handlers: {
-      onReadyUpdate: (payload) => {
-        if (payload.contest_id !== duelId) return;
-        if (payload.user_id !== myNodeId) setOpponentReady(true);
-        if (payload.ready_count >= 2) startCountdown();
-      },
-      onDuelStart: (payload) => {
-        if (payload.contest_id === duelId) startCountdown();
-      },
-      onChallengeResponse: (payload) => {
-        if (payload.contest_id === duelId && !payload.accepted) {
-          setOpponentLeft(true);
-          setEditorLocked(true);
-          clearInterval(timerRef.current!);
-          setWinnerMsg(`${opponent.name} left the duel. You win!`);
-          setTimeout(() => setPhase("won"), 2000);
-        }
-      },
-    },
-  });
+  const getStarterCode = useCallback((lang: string): string => {
+    const lcSlug = LC_LANG_MAP[lang] || "python3";
+    return snippetsRef.current[lcSlug] || DEFAULT_SNIPPETS[lcSlug] || "";
+  }, []);
 
   const startCountdown = useCallback(() => {
     setPhase("countdown");
@@ -228,11 +305,6 @@ function DuelRoomInner() {
       if (c === 0) {
         clearInterval(iv);
         setPhase("dueling");
-        let t = 0;
-        setTimer((prev) => {
-          t = prev;
-          return prev;
-        });
         if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = setInterval(() => {
           setTimer((prev) => {
@@ -258,6 +330,42 @@ function DuelRoomInner() {
     }, 1000);
   }, []);
 
+  const { send: wsSend, connected: wsConnected } = useWebSocket({
+    userId: myNodeId,
+    userName: user?.username || user?.firstName || "unknown",
+    tier: "newbie",
+    imageUrl: user?.imageUrl || "",
+    enabled: !!myNodeId,
+    handlers: {
+      onReadyUpdate: (payload) => {
+        if (payload.contest_id !== duelId) return;
+        if (payload.user_id !== myNodeId) setOpponentReady(true);
+        if (payload.ready_count >= 2) startCountdown();
+      },
+      onDuelStart: (payload) => {
+        if (payload.contest_id === duelId) startCountdown();
+      },
+      onOpponentLeft: (payload) => {
+        if (payload.contest_id !== duelId) return;
+        clearInterval(timerRef.current!);
+        clearInterval(opponentRef.current!);
+        setEditorLocked(true);
+        setResultMsg("Opponent left — You win!");
+        setPhase("won");
+        finalizeContest(duelId, myNodeId, payload.user_id, API_BASE);
+      },
+      onOpponentWon: (payload) => {
+        if (payload.contest_id !== duelId) return;
+        clearInterval(timerRef.current!);
+        clearInterval(opponentRef.current!);
+        setOpponentStatus("submitted");
+        setEditorLocked(true);
+        setResultMsg("Opponent solved it first.");
+        setTimeout(() => setPhase("lost"), 1500);
+      },
+    },
+  });
+
   const handleReady = useCallback(() => {
     if (!problem || iAmReady) return;
     setIAmReady(true);
@@ -277,36 +385,6 @@ function DuelRoomInner() {
     myNodeId,
     startCountdown,
   ]);
-  const DEFAULT_SNIPPETS: Record<string, string> = {
-    python3: "class Solution:\n    def solve(self):\n        pass\n",
-    javascript:
-      "/**\n * @return {any}\n */\nvar solve = function() {\n    \n};\n",
-    typescript: "function solve(): any {\n    \n};\n",
-    cpp: "#include <bits/stdc++.h>\nusing namespace std;\n\nclass Solution {\npublic:\n    void solve() {\n        \n    }\n};\n",
-    c: "#include <stdio.h>\n#include <stdlib.h>\n\nvoid solve() {\n    \n}\n",
-    java: "class Solution {\n    public void solve() {\n        \n    }\n}\n",
-    golang: "package main\n\nfunc solve() {\n    \n}\n",
-    rust: "impl Solution {\n    pub fn solve() {\n        \n    }\n}\n",
-  };
-
-  const LC_LANG_MAP: Record<string, string> = {
-    python: "python3",
-    javascript: "javascript",
-    typescript: "typescript",
-    cpp: "cpp",
-    c: "c",
-    java: "java",
-    go: "golang",
-    rust: "rust",
-  };
-
-  const snippetsRef = useRef<Record<string, string>>({});
-  const languageRef = useRef<string>("python");
-
-  const getStarterCode = useCallback((lang: string): string => {
-    const lcSlug = LC_LANG_MAP[lang] || "python3";
-    return snippetsRef.current[lcSlug] || DEFAULT_SNIPPETS[lcSlug] || "";
-  }, []);
 
   const fetchProblem = useCallback(
     async (diff: Difficulty, contestId?: string) => {
@@ -328,9 +406,8 @@ function DuelRoomInner() {
             },
           );
         }
-        if (!snippetMap["python3"] && data.starter_code) {
+        if (!snippetMap["python3"] && data.starter_code)
           snippetMap["python3"] = data.starter_code;
-        }
         snippetsRef.current = snippetMap;
 
         const p: Problem = {
@@ -364,6 +441,12 @@ function DuelRoomInner() {
     const init = async () => {
       const opponentName = searchParams.get("opponent") || "OPPONENT";
       const opponentId = searchParams.get("opponentId") || "";
+      const urlDifficulty = (searchParams.get("difficulty") ||
+        "Easy") as Difficulty;
+      const urlMode = (searchParams.get("mode") || "same") as ProblemMode;
+
+      setDifficulty(urlDifficulty);
+      setProblemMode(urlMode);
 
       let opponentImageUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(opponentName)}&background=27272a&color=f87171&size=128&bold=true`;
       if (opponentId) {
@@ -375,21 +458,16 @@ function DuelRoomInner() {
           }
         } catch {}
       }
-      setOpponent({ name: opponentName, imageUrl: opponentImageUrl });
+      setOpponent({
+        name: opponentName,
+        imageUrl: opponentImageUrl,
+        id: opponentId,
+      });
 
-      try {
-        const res = await fetch(`${API_BASE}duels/${duelId}`);
-        if (res.ok) {
-          const duel = await res.json();
-          const diff = (duel.difficulty as Difficulty) || "Easy";
-          setDifficulty(diff);
-          await fetchProblem(diff, duelId);
-        } else {
-          await fetchProblem("Easy", duelId);
-        }
-      } catch {
-        await fetchProblem("Easy", duelId);
-      }
+      await fetchProblem(
+        urlDifficulty,
+        urlMode === "same" ? duelId : undefined,
+      );
 
       try {
         const uid = localStorage.getItem("elonode_db_id");
@@ -400,9 +478,7 @@ function DuelRoomInner() {
             setOldRating(u.current_rating || 1000);
           }
         }
-      } catch {
-        /* ignore */
-      }
+      } catch {}
 
       setPhase("waiting");
     };
@@ -416,6 +492,20 @@ function DuelRoomInner() {
     },
     [],
   );
+
+  const handleLeave = useCallback(async () => {
+    clearInterval(timerRef.current!);
+    clearInterval(opponentRef.current!);
+    if (wsConnected && opponent.id) {
+      wsSend("leave", {
+        contest_id: duelId,
+        user_id: myNodeId,
+        to_id: opponent.id,
+      });
+    }
+    await finalizeContest(duelId, opponent.id, myNodeId, API_BASE);
+    router.push("/arena");
+  }, [duelId, myNodeId, opponent.id, wsConnected, wsSend, router]);
 
   const submitSolution = useCallback(async () => {
     if (phase !== "dueling" || !problem) return;
@@ -434,10 +524,24 @@ function DuelRoomInner() {
       const result = await runCode(code, language, "");
       const passed = result.stderr === "" && result.status === "Accepted";
       setTestResults([passed ? "passed" : "failed"]);
-      setTimeout(
-        () => setPhase(opponentStatus !== "submitted" ? "won" : "lost"),
-        800,
-      );
+      if (passed) {
+        setEditorLocked(true);
+        wsSend("won", { contest_id: duelId, to_id: opponent.id });
+        await finalizeContest(duelId, myNodeId, opponent.id, API_BASE);
+        const uid = localStorage.getItem("elonode_db_id");
+        if (uid) {
+          try {
+            const res = await fetch(`${API_BASE}users/${uid}`);
+            if (res.ok) {
+              const u = await res.json();
+              setRatingChange(u.current_rating - oldRating);
+            }
+          } catch {}
+        }
+        setPhase("won");
+      } else {
+        setPhase("lost");
+      }
       return;
     }
 
@@ -479,7 +583,10 @@ function DuelRoomInner() {
       return;
     }
 
-    const won = opponentStatus !== "submitted";
+    setEditorLocked(true);
+    wsSend("won", { contest_id: duelId, to_id: opponent.id });
+    await finalizeContest(duelId, myNodeId, opponent.id, API_BASE);
+
     try {
       const uid = localStorage.getItem("elonode_db_id");
       if (uid) {
@@ -487,17 +594,25 @@ function DuelRoomInner() {
         if (res.ok) {
           const u = await res.json();
           setRatingChange(u.current_rating - oldRating);
-        } else setRatingChange(won ? 72 : -50);
+        } else setRatingChange(72);
       }
     } catch {
-      setRatingChange(won ? 72 : -50);
+      setRatingChange(72);
     }
-    setEditorLocked(true);
-    setWinnerMsg(
-      won ? "You solved it first! 🏆" : `${opponent.name} submitted first.`,
-    );
-    setPhase(won ? "won" : "lost");
-  }, [phase, problem, code, language, opponentStatus, oldRating]);
+
+    setPhase("won");
+  }, [
+    phase,
+    problem,
+    code,
+    language,
+    opponentStatus,
+    oldRating,
+    duelId,
+    myNodeId,
+    opponent.id,
+    wsSend,
+  ]);
 
   if (phase === "loading" || fetchingProblem)
     return (
@@ -569,9 +684,38 @@ function DuelRoomInner() {
             </div>
           )}
 
-          <div className="mb-6">
+          <div className="mb-5">
             <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-3">
-              Change Difficulty
+              Problem Mode
+            </p>
+            <div className="flex gap-2 justify-center mb-4">
+              {(["same", "random"] as ProblemMode[]).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => {
+                    setProblemMode(m);
+                    fetchProblem(difficulty, m === "same" ? duelId : undefined);
+                  }}
+                  className="px-5 py-2 rounded-lg font-mono text-[10px] font-bold uppercase tracking-widest cursor-pointer border transition-all"
+                  style={{
+                    background:
+                      problemMode === m
+                        ? "rgba(99,102,241,0.15)"
+                        : "transparent",
+                    borderColor:
+                      problemMode === m
+                        ? "rgba(99,102,241,0.5)"
+                        : "rgba(255,255,255,0.08)",
+                    color: problemMode === m ? "#818cf8" : "#52525b",
+                  }}
+                >
+                  {m === "same" ? "⚔ Same Problem" : "🎲 Random Problem"}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-3">
+              Difficulty
             </p>
             <div className="flex gap-2 justify-center">
               {(["Easy", "Medium", "Hard"] as Difficulty[]).map((d) => (
@@ -579,7 +723,10 @@ function DuelRoomInner() {
                   key={d}
                   onClick={async () => {
                     setDifficulty(d);
-                    await fetchProblem(d);
+                    await fetchProblem(
+                      d,
+                      problemMode === "same" ? duelId : undefined,
+                    );
                   }}
                   disabled={fetchingProblem}
                   className="px-4 py-2 rounded-lg font-mono text-[10px] font-bold uppercase tracking-widest cursor-pointer border transition-all disabled:opacity-40"
@@ -726,6 +873,15 @@ function DuelRoomInner() {
             {won ? "VICTORY" : "DEFEATED"}
           </h1>
 
+          {resultMsg && (
+            <p
+              className="text-[10px] tracking-widest uppercase mb-4"
+              style={{ color: won ? "#4ade80" : "#f87171" }}
+            >
+              {resultMsg}
+            </p>
+          )}
+
           <div className="flex items-center justify-center gap-6 mb-6">
             <div className="flex flex-col items-center gap-2">
               <Avatar
@@ -753,11 +909,6 @@ function DuelRoomInner() {
             </div>
           </div>
 
-          <p className="text-[11px] text-zinc-600 tracking-wide leading-loose mb-8">
-            {won
-              ? `All test cases passed. You outpaced ${opponent.name}.`
-              : `${opponent.name} submitted first.`}
-          </p>
           <div className="inline-flex items-center gap-8 bg-white/[0.02] border border-white/[0.05] rounded-2xl px-10 py-6 mb-8">
             <div className="text-center">
               <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-2">
@@ -1063,17 +1214,21 @@ function DuelRoomInner() {
           </div>
 
           <div className="flex-1 overflow-hidden bg-[#1e1e1e] relative">
-            {opponentLeft && (
-              <div className="absolute inset-x-0 top-0 z-20 bg-rose-500/10 border-b border-rose-500/30 px-4 py-2 flex items-center gap-2">
-                <span className="text-[10px] text-rose-400 font-mono tracking-widest uppercase animate-pulse">
-                  ⚠ Opponent left the duel — You win!
-                </span>
-              </div>
-            )}
-            {winnerMsg && phase === "dueling" && (
-              <div className="absolute inset-x-0 top-0 z-20 bg-emerald-500/10 border-b border-emerald-500/30 px-4 py-2 flex items-center gap-2">
-                <span className="text-[10px] text-emerald-400 font-mono tracking-widest uppercase">
-                  {winnerMsg}
+            {resultMsg && (phase === "dueling" || phase === "submitting") && (
+              <div
+                className="absolute inset-x-0 top-0 z-20 px-4 py-2 flex items-center gap-2"
+                style={{
+                  background: editorLocked
+                    ? "rgba(74,222,128,0.08)"
+                    : "rgba(248,113,113,0.08)",
+                  borderBottom: `1px solid ${editorLocked ? "rgba(74,222,128,0.3)" : "rgba(248,113,113,0.3)"}`,
+                }}
+              >
+                <span
+                  className="text-[10px] font-mono tracking-widest uppercase animate-pulse"
+                  style={{ color: editorLocked ? "#4ade80" : "#f87171" }}
+                >
+                  {resultMsg}
                 </span>
               </div>
             )}
@@ -1165,21 +1320,7 @@ function DuelRoomInner() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={async () => {
-                    clearInterval(timerRef.current!);
-                    clearInterval(opponentRef.current!);
-                    const uid = localStorage.getItem("elonode_db_id");
-                    if (uid && duelId) {
-                      try {
-                        await fetch(`${API_BASE}contests/${duelId}/finalize`, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify([{ user_id: uid, rank: 2 }]),
-                        });
-                      } catch {}
-                    }
-                    router.push("/arena");
-                  }}
+                  onClick={handleLeave}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-[10px] font-bold uppercase tracking-widest border cursor-pointer transition-all text-zinc-500 hover:text-rose-400 hover:border-rose-400/30"
                   style={{
                     background: "transparent",
@@ -1190,7 +1331,7 @@ function DuelRoomInner() {
                 </button>
                 <button
                   onClick={submitSolution}
-                  disabled={phase === "submitting"}
+                  disabled={phase === "submitting" || editorLocked}
                   className="flex items-center gap-2 px-5 py-2 rounded-lg text-white font-mono text-[10px] font-bold uppercase tracking-widest border-0 cursor-pointer transition-all disabled:opacity-50"
                   style={{
                     background:
