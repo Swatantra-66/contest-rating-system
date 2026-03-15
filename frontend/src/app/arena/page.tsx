@@ -112,6 +112,7 @@ function RatingBar({ rating }: { rating: number }) {
 
 export default function ArenaPage() {
   const { isLoaded, user } = useUser();
+  const router = useRouter();
   const [allUsers, setAllUsers] = useState<NodeUser[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -312,6 +313,10 @@ export default function ArenaPage() {
             localStorage.removeItem("elonode_active_contest");
             return null;
           }
+          const opponentDisplay =
+            data.opponent?.length > 20
+              ? data.opponent.slice(0, 8) + "..."
+              : data.opponent;
           return (
             <div
               style={{
@@ -337,12 +342,10 @@ export default function ArenaPage() {
                   textTransform: "uppercase",
                 }}
               >
-                ⚡ Active Duel vs {data.opponent}
+                ⚡ Active Duel vs {opponentDisplay}
               </span>
               <button
-                onClick={() => {
-                  window.location.href = data.url;
-                }}
+                onClick={() => router.push(data.url)}
                 style={{
                   background: "linear-gradient(135deg,#f59e0b,#d97706)",
                   border: "none",
@@ -361,7 +364,6 @@ export default function ArenaPage() {
               <button
                 onClick={() => {
                   localStorage.removeItem("elonode_active_contest");
-                  window.location.reload();
                 }}
                 style={{
                   background: "none",
