@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Orbitron } from "next/font/google";
 import { UserButton, SignOutButton, useAuth } from "@clerk/nextjs";
-import UnicornScene from "unicornstudio-react"; // IMPORTED UNICORN STUDIO
+import UnicornScene from "unicornstudio-react";
 
 const futuristicFont = Orbitron({
   subsets: ["latin"],
@@ -66,7 +66,6 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* HIDDEN WATERMARK CSS */}
       <style>{`
         a[href*="unicorn.studio"] {
           display: none !important;
@@ -88,8 +87,6 @@ export default function Sidebar() {
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* --- UNICORN STUDIO BACKGROUND (Z-0) --- */}
-        {/* Scaled to 150% and centered to shift the bright spot slightly and hide edges */}
         <div
           className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
           style={{ width: "150%", height: "150%", top: "-25%", left: "-25%" }}
@@ -104,10 +101,8 @@ export default function Sidebar() {
           />
         </div>
 
-        {/* --- DARK OVERLAY FOR TEXT READABILITY (Z-10) --- */}
         <div className="absolute inset-0 z-10 bg-zinc-950/80 backdrop-blur-[2px]" />
 
-        {/* --- CONTENT WRAPPER (Z-20) --- */}
         <div className="relative z-20 flex flex-col h-full p-8 overflow-y-auto">
           <Link
             href="/"
