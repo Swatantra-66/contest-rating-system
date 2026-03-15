@@ -489,6 +489,40 @@ function DuelRoomInner() {
     init();
   }, [duelId, fetchProblem, searchParams]);
 
+  const [showLeaveWarning, setShowLeaveWarning] = useState(false);
+
+  useEffect(() => {
+    if (phase === "dueling" || phase === "waiting" || phase === "countdown") {
+      const url = window.location.href;
+      localStorage.setItem(
+        "elonode_active_contest",
+        JSON.stringify({
+          contestId: duelId,
+          opponent: opponent.name,
+          opponentId: opponent.id,
+          difficulty,
+          mode: problemMode,
+          url,
+          timestamp: Date.now(),
+        }),
+      );
+    }
+    if (phase === "won" || phase === "lost") {
+      localStorage.removeItem("elonode_active_contest");
+    }
+  }, [phase, duelId, opponent, difficulty, problemMode]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (phase === "dueling" || phase === "waiting" || phase === "countdown") {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [phase]);
+
   useEffect(
     () => () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -638,197 +672,216 @@ function DuelRoomInner() {
 
   if (phase === "waiting")
     return (
-      <div className="min-h-screen bg-[#05060b] flex items-center justify-center font-mono">
+      <div className="min-h-screen bg-[#05060b] font-mono overflow-auto">
         <style>{`@keyframes pulseGlow{0%,100%{opacity:1}50%{opacity:0.5}}`}</style>
-        <div className="text-center max-w-lg w-full px-8">
+
+        <div className="h-12 border-b border-white/5 flex items-center justify-between px-6 bg-black/40">
           <Link
             href="/arena"
-            className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-400 transition-colors text-[10px] tracking-widest uppercase mb-10"
+            className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-400 transition-colors text-[10px] tracking-widest uppercase"
           >
             <ArrowLeft size={12} /> Return to Arena
           </Link>
           <p
-            className="text-[10px] tracking-[0.3em] text-zinc-600 uppercase mb-4"
+            className="text-[10px] tracking-[0.3em] text-zinc-600 uppercase"
             style={{ animation: "pulseGlow 2s ease infinite" }}
           >
             ● Duel Room Active
           </p>
           <h1
-            className={`${orbitron.className} text-5xl font-black text-white uppercase tracking-tighter mb-2`}
+            className={`${orbitron.className} text-xl font-black text-white uppercase tracking-tighter`}
           >
             DUEL <span className="text-indigo-500">ROOM</span>
           </h1>
+        </div>
 
-          {problem && (
-            <div className="my-6 px-5 py-4 rounded-xl bg-white/[0.02] border border-white/[0.05] text-left">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] text-zinc-600 tracking-widest uppercase">
-                  Problem
-                </span>
-                <span
-                  className="text-[9px] px-2 py-0.5 rounded"
-                  style={{
-                    background: `${DIFF_COLOR[problem.difficulty]}15`,
-                    border: `1px solid ${DIFF_COLOR[problem.difficulty]}30`,
-                    color: DIFF_COLOR[problem.difficulty],
-                  }}
-                >
-                  {problem.difficulty}
-                </span>
-              </div>
-              <p className="text-sm font-bold text-white tracking-wide">
-                {problem.title}
+        <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-3 gap-6">
+          <div className="col-span-1 flex flex-col gap-4">
+            <div className="rounded-xl bg-white/[0.02] border border-white/[0.05] p-5">
+              <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-4">
+                Players
               </p>
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {problem.tags.slice(0, 4).map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-[8px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-500 tracking-widest"
-                  >
-                    {tag}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col items-center gap-2 flex-1">
+                  <Avatar
+                    name={user?.username || user?.firstName || "?"}
+                    imageUrl={user?.imageUrl}
+                    size={52}
+                  />
+                  <span className="text-[10px] font-bold tracking-widest text-white uppercase text-center">
+                    {user?.username || user?.firstName || "YOU"}
                   </span>
+                </div>
+                <div
+                  className={`${orbitron.className} text-lg font-black text-zinc-700`}
+                >
+                  VS
+                </div>
+                <div className="flex flex-col items-center gap-2 flex-1">
+                  <Avatar
+                    name={opponent.name}
+                    imageUrl={opponent.imageUrl}
+                    color="from-rose-500 to-rose-700"
+                    size={52}
+                  />
+                  <span className="text-[10px] font-bold tracking-widest text-white uppercase text-center">
+                    {opponent.name}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-white/[0.02] border border-white/[0.05] p-5">
+              <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-3">
+                Timer
+              </p>
+              <p
+                className={`${orbitron.className} text-3xl font-black text-white`}
+              >
+                {fmt(problem?.timerSecs || 900)}
+              </p>
+            </div>
+
+            {errorMsg && (
+              <p className="text-rose-400 text-[10px] tracking-wide">
+                {errorMsg}
+              </p>
+            )}
+
+            <div className="mt-auto">
+              {opponentReady && !iAmReady && (
+                <p className="text-amber-400 text-[10px] tracking-widest uppercase mb-3 animate-pulse">
+                  ⚡ Opponent is ready!
+                </p>
+              )}
+              {iAmReady && !opponentReady && (
+                <p className="text-zinc-500 text-[10px] tracking-widest uppercase mb-3 animate-pulse">
+                  ⏳ Waiting for opponent...
+                </p>
+              )}
+              <button
+                onClick={handleReady}
+                disabled={!problem || fetchingProblem || iAmReady}
+                className="w-full py-4 rounded-xl text-white font-mono text-[11px] font-bold uppercase tracking-widest border-0 cursor-pointer transition-all disabled:opacity-40"
+                style={{
+                  background: iAmReady
+                    ? "rgba(74,222,128,0.2)"
+                    : "linear-gradient(135deg,#6366f1,#4f46e5)",
+                  boxShadow: iAmReady
+                    ? "0 0 0 1px rgba(74,222,128,0.4)"
+                    : "0 0 0 1px rgba(99,102,241,0.4), 0 12px 40px rgba(99,102,241,0.35)",
+                }}
+                onMouseEnter={(e) =>
+                  !fetchingProblem &&
+                  !iAmReady &&
+                  (e.currentTarget.style.transform = "translateY(-2px)")
+                }
+                onMouseLeave={(e) => (e.currentTarget.style.transform = "")}
+              >
+                {iAmReady ? "✓ READY — Waiting for opponent..." : "⚔ I'M READY"}
+              </button>
+            </div>
+          </div>
+
+          <div className="col-span-2 flex flex-col gap-4">
+            {problem && (
+              <div className="rounded-xl bg-white/[0.02] border border-white/[0.05] p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[9px] text-zinc-600 tracking-widest uppercase">
+                    Problem
+                  </p>
+                  <span
+                    className="text-[9px] px-2 py-0.5 rounded"
+                    style={{
+                      background: `${DIFF_COLOR[problem.difficulty]}15`,
+                      border: `1px solid ${DIFF_COLOR[problem.difficulty]}30`,
+                      color: DIFF_COLOR[problem.difficulty],
+                    }}
+                  >
+                    {problem.difficulty}
+                  </span>
+                </div>
+                <p className="text-base font-bold text-white tracking-wide mb-2">
+                  {problem.title}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {problem.tags.slice(0, 5).map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-[8px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-500 tracking-widest"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-xl bg-white/[0.02] border border-white/[0.05] p-5">
+              <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-4">
+                Problem Mode
+              </p>
+              <div className="flex gap-3 mb-5">
+                {(["same", "random"] as ProblemMode[]).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      setProblemMode(m);
+                      fetchProblem(
+                        difficulty,
+                        m === "same" ? duelId : undefined,
+                      );
+                    }}
+                    className="flex-1 py-2.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-widest cursor-pointer border transition-all"
+                    style={{
+                      background:
+                        problemMode === m
+                          ? "rgba(99,102,241,0.15)"
+                          : "transparent",
+                      borderColor:
+                        problemMode === m
+                          ? "rgba(99,102,241,0.5)"
+                          : "rgba(255,255,255,0.08)",
+                      color: problemMode === m ? "#818cf8" : "#52525b",
+                    }}
+                  >
+                    {m === "same" ? "⚔ Same Problem" : "🎲 Random Problem"}
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-3">
+                Difficulty
+              </p>
+              <div className="flex gap-3">
+                {(["Easy", "Medium", "Hard"] as Difficulty[]).map((d) => (
+                  <button
+                    key={d}
+                    onClick={async () => {
+                      setDifficulty(d);
+                      await fetchProblem(
+                        d,
+                        problemMode === "same" ? duelId : undefined,
+                      );
+                    }}
+                    disabled={fetchingProblem}
+                    className="flex-1 py-2.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-widest cursor-pointer border transition-all disabled:opacity-40"
+                    style={{
+                      background:
+                        difficulty === d ? `${DIFF_COLOR[d]}15` : "transparent",
+                      borderColor:
+                        difficulty === d
+                          ? `${DIFF_COLOR[d]}50`
+                          : "rgba(255,255,255,0.08)",
+                      color: difficulty === d ? DIFF_COLOR[d] : "#52525b",
+                    }}
+                  >
+                    {d}
+                  </button>
                 ))}
               </div>
             </div>
-          )}
-
-          <div className="mb-5">
-            <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-3">
-              Problem Mode
-            </p>
-            <div className="flex gap-2 justify-center mb-4">
-              {(["same", "random"] as ProblemMode[]).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => {
-                    setProblemMode(m);
-                    fetchProblem(difficulty, m === "same" ? duelId : undefined);
-                  }}
-                  className="px-5 py-2 rounded-lg font-mono text-[10px] font-bold uppercase tracking-widest cursor-pointer border transition-all"
-                  style={{
-                    background:
-                      problemMode === m
-                        ? "rgba(99,102,241,0.15)"
-                        : "transparent",
-                    borderColor:
-                      problemMode === m
-                        ? "rgba(99,102,241,0.5)"
-                        : "rgba(255,255,255,0.08)",
-                    color: problemMode === m ? "#818cf8" : "#52525b",
-                  }}
-                >
-                  {m === "same" ? "⚔ Same Problem" : "🎲 Random Problem"}
-                </button>
-              ))}
-            </div>
-
-            <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-3">
-              Difficulty
-            </p>
-            <div className="flex gap-2 justify-center">
-              {(["Easy", "Medium", "Hard"] as Difficulty[]).map((d) => (
-                <button
-                  key={d}
-                  onClick={async () => {
-                    setDifficulty(d);
-                    await fetchProblem(
-                      d,
-                      problemMode === "same" ? duelId : undefined,
-                    );
-                  }}
-                  disabled={fetchingProblem}
-                  className="px-4 py-2 rounded-lg font-mono text-[10px] font-bold uppercase tracking-widest cursor-pointer border transition-all disabled:opacity-40"
-                  style={{
-                    background:
-                      difficulty === d ? `${DIFF_COLOR[d]}15` : "transparent",
-                    borderColor:
-                      difficulty === d
-                        ? `${DIFF_COLOR[d]}50`
-                        : "rgba(255,255,255,0.08)",
-                    color: difficulty === d ? DIFF_COLOR[d] : "#52525b",
-                  }}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
           </div>
-
-          <div className="flex items-center justify-center gap-8 mb-6 bg-white/[0.02] border border-white/[0.05] rounded-2xl p-7">
-            <div className="flex flex-col items-center gap-3">
-              <Avatar
-                name={user?.username || user?.firstName || "?"}
-                imageUrl={user?.imageUrl}
-                size={56}
-              />
-              <span className="text-[10px] font-bold tracking-widest text-white uppercase">
-                {user?.username || user?.firstName || "YOU"}
-              </span>
-            </div>
-            <div
-              className={`${orbitron.className} text-xl font-black text-zinc-700 tracking-widest`}
-            >
-              VS
-            </div>
-            <div className="flex flex-col items-center gap-3">
-              <Avatar
-                name={opponent.name}
-                imageUrl={opponent.imageUrl}
-                color="from-rose-500 to-rose-700"
-                size={56}
-              />
-              <span className="text-[10px] font-bold tracking-widest text-white uppercase">
-                {opponent.name}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center gap-4 text-[9px] tracking-widest mb-7 text-zinc-600">
-            <span>
-              TIME:{" "}
-              <span className="text-zinc-400">
-                {fmt(problem?.timerSecs || 900)}
-              </span>
-            </span>
-          </div>
-          {errorMsg && (
-            <p className="text-rose-400 text-[10px] tracking-wide mb-4">
-              {errorMsg}
-            </p>
-          )}
-
-          {opponentReady && !iAmReady && (
-            <p className="text-amber-400 text-[10px] tracking-widest uppercase mb-3 animate-pulse">
-              ⚡ Opponent is ready — waiting for you!
-            </p>
-          )}
-          {iAmReady && !opponentReady && (
-            <p className="text-zinc-500 text-[10px] tracking-widest uppercase mb-3 animate-pulse">
-              ⏳ Waiting for opponent to ready up...
-            </p>
-          )}
-
-          <button
-            onClick={handleReady}
-            disabled={!problem || fetchingProblem || iAmReady}
-            className="w-full py-4 rounded-xl text-white font-mono text-[11px] font-bold uppercase tracking-widest border-0 cursor-pointer transition-all disabled:opacity-40"
-            style={{
-              background: iAmReady
-                ? "rgba(74,222,128,0.2)"
-                : "linear-gradient(135deg,#6366f1,#4f46e5)",
-              boxShadow: iAmReady
-                ? "0 0 0 1px rgba(74,222,128,0.4)"
-                : "0 0 0 1px rgba(99,102,241,0.4), 0 12px 40px rgba(99,102,241,0.35)",
-            }}
-            onMouseEnter={(e) =>
-              !fetchingProblem &&
-              !iAmReady &&
-              (e.currentTarget.style.transform = "translateY(-2px)")
-            }
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "")}
-          >
-            {iAmReady ? "✓ READY — Waiting for opponent..." : "⚔ I'M READY"}
-          </button>
         </div>
       </div>
     );
@@ -1068,17 +1121,65 @@ function DuelRoomInner() {
       <style>{`
         @keyframes slideBar{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}
         @keyframes timerPulse{0%,100%{opacity:1}50%{opacity:0.4}}
+        @keyframes modalIn{0%{transform:scale(0.92);opacity:0}100%{transform:scale(1);opacity:1}}
         textarea{resize:none;outline:none;}
         ::-webkit-scrollbar{width:4px}
         ::-webkit-scrollbar-track{background:#09090b}
         ::-webkit-scrollbar-thumb{background:#27272a;border-radius:2px}
       `}</style>
 
+      {showLeaveWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div
+            className="bg-[#0f1015] border border-rose-500/30 rounded-2xl p-8 max-w-sm w-full mx-4 text-center font-mono"
+            style={{ animation: "modalIn 0.25s ease-out" }}
+          >
+            <div className="text-3xl mb-4">⚠️</div>
+            <h3
+              className={`${orbitron.className} text-lg font-black text-white uppercase tracking-tight mb-2`}
+            >
+              Leave Duel?
+            </h3>
+            <p className="text-zinc-500 text-[11px] leading-relaxed mb-6">
+              Leaving will count as a forfeit. Your opponent will win and the
+              contest will be finalized.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLeaveWarning(false)}
+                className="flex-1 py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest cursor-pointer border border-white/10 text-zinc-400 hover:text-white hover:border-white/20 transition-all bg-transparent"
+              >
+                Stay
+              </button>
+              <button
+                onClick={async () => {
+                  setShowLeaveWarning(false);
+                  await handleLeave();
+                }}
+                className="flex-1 py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest cursor-pointer border-0 text-white transition-all"
+                style={{
+                  background: "linear-gradient(135deg,#ef4444,#dc2626)",
+                  boxShadow: "0 4px 16px rgba(239,68,68,0.3)",
+                }}
+              >
+                Leave & Forfeit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-black/40 backdrop-blur-sm flex-shrink-0">
         <div className="flex items-center gap-3">
           <Link
             href="/arena"
             className="text-zinc-600 hover:text-zinc-400 transition-colors"
+            onClick={(e) => {
+              if (phase === "dueling") {
+                e.preventDefault();
+                setShowLeaveWarning(true);
+              }
+            }}
           >
             <ArrowLeft size={14} />
           </Link>
@@ -1478,7 +1579,7 @@ function DuelRoomInner() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={handleLeave}
+                  onClick={() => setShowLeaveWarning(true)}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-[10px] font-bold uppercase tracking-widest border cursor-pointer transition-all text-zinc-500 hover:text-rose-400 hover:border-rose-400/30"
                   style={{
                     background: "transparent",
