@@ -35,6 +35,7 @@ type lcProblemDetailResponse struct {
 			Difficulty       string `json:"difficulty"`
 			Content          string `json:"content"`
 			ExampleTestcases string `json:"exampleTestcases"`
+			MetaData         string `json:"metaData"`
 			CodeSnippets     []struct {
 				LangSlug string `json:"langSlug"`
 				Code     string `json:"code"`
@@ -62,6 +63,7 @@ type ProblemResponse struct {
 	Tags         []string      `json:"tags"`
 	LeetcodeURL  string        `json:"leetcode_url"`
 	CodeSnippets []CodeSnippet `json:"code_snippets"`
+	MetaData     string        `json:"meta_data"`
 }
 
 var (
