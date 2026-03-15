@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Orbitron } from "next/font/google";
 import Link from "next/link";
+import UnicornScene from "unicornstudio-react";
 import { useGlobalWS } from "@/components/WebSocketProvider";
 
 const orbitron = Orbitron({ subsets: ["latin"], weight: ["700", "900"] });
@@ -239,8 +240,34 @@ export default function ArenaPage() {
         background: "#05060b",
         fontFamily: "ui-monospace,monospace",
         color: "#e4e4e7",
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
       }}
     >
+      <style>{`[class*="unicorn-watermark"],[class*="watermark"],[id*="watermark"],a[href*="unicorn"]{display:none!important;opacity:0!important;visibility:hidden!important;}`}</style>
+      <div
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "calc(50% + 128px)",
+          transform: "translate(-50%, -50%)",
+          zIndex: 0,
+          pointerEvents: "none",
+          width: "1440px",
+          height: "900px",
+        }}
+      >
+        <UnicornScene
+          projectId="l00SNXxDg8mg4HVu5KDY"
+          width="1440px"
+          height="900px"
+          scale={1}
+          dpi={1.5}
+          sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@2.1.4/dist/unicornStudio.umd.js"
+        />
+      </div>
       <style>{`
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
         @keyframes cardIn{from{opacity:0;transform:translateY(24px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -382,8 +409,17 @@ export default function ArenaPage() {
         }
       })()}
 
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
-        <div style={{ animation: "fadeUp 0.5s ease-out", marginBottom: 40 }}>
+      <div
+        style={{
+          maxWidth: 1100,
+          width: "100%",
+          margin: "0 auto",
+          padding: "32px 24px",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <div style={{ marginBottom: 20 }}>
           <Link
             href="/"
             style={{
@@ -395,7 +431,6 @@ export default function ArenaPage() {
               fontSize: 10,
               letterSpacing: "0.25em",
               textTransform: "uppercase",
-              marginBottom: 24,
               transition: "color 0.2s",
             }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "#818cf8")}
@@ -403,595 +438,621 @@ export default function ArenaPage() {
           >
             <ArrowLeft size={12} /> Return to Hub
           </Link>
-
+        </div>
+        <div
+          style={{
+            background: "rgba(5,6,11,0.45)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 20,
+            backdropFilter: "blur(20px)",
+            overflow: "hidden",
+          }}
+        >
           <div
             style={{
+              padding: "20px 28px",
+              borderBottom: "1px solid rgba(255,255,255,0.06)",
               display: "flex",
-              alignItems: "flex-end",
+              alignItems: "center",
               justifyContent: "space-between",
               flexWrap: "wrap",
-              gap: 20,
+              gap: 16,
             }}
           >
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  marginBottom: 4,
-                }}
-              >
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: "rgba(99,102,241,0.15)",
-                    border: "1px solid rgba(99,102,241,0.3)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Swords size={18} style={{ color: "#818cf8" }} />
-                </div>
-                <h1
-                  className={orbitron.className}
-                  style={{
-                    fontSize: 32,
-                    fontWeight: 900,
-                    letterSpacing: "-0.02em",
-                    color: "#fff",
-                    textTransform: "uppercase",
-                    margin: 0,
-                  }}
-                >
-                  MATCH<span style={{ color: "#3f3f46" }}>MAKING</span>
-                </h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div>
                 <div
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 5,
-                    padding: "3px 10px",
-                    borderRadius: 20,
-                    background: connected
-                      ? "rgba(74,222,128,0.08)"
-                      : "rgba(248,113,113,0.08)",
-                    border: `1px solid ${connected ? "rgba(74,222,128,0.2)" : "rgba(248,113,113,0.2)"}`,
+                    gap: 12,
+                    marginBottom: 4,
                   }}
                 >
-                  {connected ? (
-                    <Wifi size={10} style={{ color: "#4ade80" }} />
-                  ) : (
-                    <WifiOff size={10} style={{ color: "#f87171" }} />
-                  )}
-                  <span
+                  <div
                     style={{
-                      fontSize: 8,
-                      letterSpacing: "0.15em",
-                      textTransform: "uppercase",
-                      color: connected ? "#4ade80" : "#f87171",
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: "rgba(99,102,241,0.15)",
+                      border: "1px solid rgba(99,102,241,0.3)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    {connected ? "Live" : "Offline"}
-                  </span>
+                    <Swords size={18} style={{ color: "#818cf8" }} />
+                  </div>
+                  <h1
+                    className={orbitron.className}
+                    style={{
+                      fontSize: 32,
+                      fontWeight: 900,
+                      letterSpacing: "-0.02em",
+                      color: "#fff",
+                      textTransform: "uppercase",
+                      margin: 0,
+                    }}
+                  >
+                    MATCH<span style={{ color: "#3f3f46" }}>MAKING</span>
+                  </h1>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      padding: "3px 10px",
+                      borderRadius: 20,
+                      background: connected
+                        ? "rgba(74,222,128,0.08)"
+                        : "rgba(248,113,113,0.08)",
+                      border: `1px solid ${connected ? "rgba(74,222,128,0.2)" : "rgba(248,113,113,0.2)"}`,
+                    }}
+                  >
+                    {connected ? (
+                      <Wifi size={10} style={{ color: "#4ade80" }} />
+                    ) : (
+                      <WifiOff size={10} style={{ color: "#f87171" }} />
+                    )}
+                    <span
+                      style={{
+                        fontSize: 8,
+                        letterSpacing: "0.15em",
+                        textTransform: "uppercase",
+                        color: connected ? "#4ade80" : "#f87171",
+                      }}
+                    >
+                      {connected ? "Live" : "Offline"}
+                    </span>
+                  </div>
                 </div>
+                <p
+                  style={{
+                    fontSize: 10,
+                    color: "#3f3f46",
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                    marginLeft: 48,
+                  }}
+                >
+                  Challenge online nodes to a real-time duel
+                </p>
               </div>
-              <p
-                style={{
-                  fontSize: 10,
-                  color: "#3f3f46",
-                  letterSpacing: "0.2em",
-                  textTransform: "uppercase",
-                  marginLeft: 48,
-                }}
-              >
-                Challenge online nodes to a real-time duel
-              </p>
-            </div>
-            <div style={{ position: "relative" }}>
-              <Search
-                size={13}
-                style={{
-                  position: "absolute",
-                  left: 12,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "#52525b",
-                }}
-              />
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Target specific node..."
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.07)",
-                  borderRadius: 10,
-                  padding: "10px 14px 10px 36px",
-                  color: "#e4e4e7",
-                  fontFamily: "ui-monospace,monospace",
-                  fontSize: 11,
-                  letterSpacing: "0.1em",
-                  width: 240,
-                  outline: "none",
-                }}
-                onFocus={(e) =>
-                  (e.currentTarget.style.borderColor = "rgba(99,102,241,0.4)")
-                }
-                onBlur={(e) =>
-                  (e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)")
-                }
-              />
+              <div style={{ position: "relative" }}>
+                <Search
+                  size={13}
+                  style={{
+                    position: "absolute",
+                    left: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#52525b",
+                  }}
+                />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Target specific node..."
+                  style={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                    borderRadius: 10,
+                    padding: "10px 14px 10px 36px",
+                    color: "#e4e4e7",
+                    fontFamily: "ui-monospace,monospace",
+                    fontSize: 11,
+                    letterSpacing: "0.1em",
+                    width: 240,
+                    outline: "none",
+                  }}
+                  onFocus={(e) =>
+                    (e.currentTarget.style.borderColor = "rgba(99,102,241,0.4)")
+                  }
+                  onBlur={(e) =>
+                    (e.currentTarget.style.borderColor =
+                      "rgba(255,255,255,0.07)")
+                  }
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            marginBottom: 24,
-            flexWrap: "wrap",
-            animation: "fadeUp 0.5s ease-out 0.05s both",
-          }}
-        >
           <div
             style={{
+              padding: "12px 28px",
+              borderBottom: "1px solid rgba(255,255,255,0.05)",
               display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "8px 4px",
+              gap: 12,
+              flexWrap: "wrap",
             }}
           >
-            <span
-              style={{
-                fontSize: 9,
-                color: "#52525b",
-                letterSpacing: "0.2em",
-                textTransform: "uppercase",
-              }}
-            >
-              Difficulty:
-            </span>
-            {(["Easy", "Medium", "Hard"] as const).map((d) => (
-              <button
-                key={d}
-                onClick={() => setDifficulty(d)}
-                style={{
-                  padding: "5px 14px",
-                  borderRadius: 8,
-                  border: `1px solid ${difficulty === d ? DIFF_COLORS[d] + "60" : "rgba(255,255,255,0.07)"}`,
-                  background:
-                    difficulty === d ? DIFF_COLORS[d] + "15" : "transparent",
-                  color: difficulty === d ? DIFF_COLORS[d] : "#52525b",
-                  fontFamily: "ui-monospace,monospace",
-                  fontSize: 9,
-                  fontWeight: 700,
-                  letterSpacing: "0.15em",
-                  textTransform: "uppercase",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                }}
-              >
-                {d}
-              </button>
-            ))}
-          </div>
-          <div
-            style={{
-              width: 1,
-              background: "rgba(255,255,255,0.05)",
-              margin: "0 4px",
-            }}
-          />
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "8px 4px",
-            }}
-          >
-            <span
-              style={{
-                fontSize: 9,
-                color: "#52525b",
-                letterSpacing: "0.2em",
-                textTransform: "uppercase",
-              }}
-            >
-              Problem:
-            </span>
-            {(["same", "random"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                style={{
-                  padding: "5px 14px",
-                  borderRadius: 8,
-                  border: `1px solid ${mode === m ? "rgba(99,102,241,0.5)" : "rgba(255,255,255,0.07)"}`,
-                  background:
-                    mode === m ? "rgba(99,102,241,0.15)" : "transparent",
-                  color: mode === m ? "#818cf8" : "#52525b",
-                  fontFamily: "ui-monospace,monospace",
-                  fontSize: 9,
-                  fontWeight: 700,
-                  letterSpacing: "0.15em",
-                  textTransform: "uppercase",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                }}
-              >
-                {m === "same" ? "⚔ Same" : "🎲 Random"}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            marginBottom: 32,
-            animation: "fadeUp 0.5s ease-out 0.1s both",
-          }}
-        >
-          {[
-            {
-              icon: <Target size={12} />,
-              label: "Online Now",
-              value: onlineUsers.length,
-              color: "#4ade80",
-            },
-            {
-              icon: <Trophy size={12} />,
-              label: "Total Nodes",
-              value: allUsers.length,
-              color: "#fbbf24",
-            },
-            {
-              icon: <Star size={12} />,
-              label: "Top Rating",
-              value: allUsers[0]?.current_rating || 0,
-              color: "#818cf8",
-            },
-          ].map((stat) => (
             <div
-              key={stat.label}
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                padding: "8px 16px",
-                background: "rgba(255,255,255,0.02)",
-                border: "1px solid rgba(255,255,255,0.05)",
-                borderRadius: 8,
-                fontSize: 10,
+                padding: "8px 4px",
               }}
             >
-              <span style={{ color: stat.color }}>{stat.icon}</span>
               <span
                 style={{
-                  color: "#3f3f46",
-                  letterSpacing: "0.1em",
+                  fontSize: 9,
+                  color: "#52525b",
+                  letterSpacing: "0.2em",
                   textTransform: "uppercase",
                 }}
               >
-                {stat.label}:
+                Difficulty:
               </span>
-              <span style={{ color: "#e4e4e7", fontWeight: 700 }}>
-                {stat.value}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {opponents.length === 0 ? (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "80px 0",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <ShieldAlert size={32} style={{ color: "#27272a" }} />
-            <p
-              style={{
-                fontSize: 11,
-                color: "#3f3f46",
-                letterSpacing: "0.2em",
-                textTransform: "uppercase",
-              }}
-            >
-              No nodes found
-            </p>
-          </div>
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-              gap: 16,
-            }}
-          >
-            {opponents.map((opponent, i) => {
-              const tier = getTier(opponent.tier);
-              const isOnline = onlineIds.has(opponent.id);
-              const isChallenging = challenging === opponent.id;
-              return (
-                <div
-                  key={opponent.id}
-                  className="node-card"
+              {(["Easy", "Medium", "Hard"] as const).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDifficulty(d)}
                   style={{
-                    background: "rgba(255,255,255,0.02)",
-                    border: `1px solid ${isOnline ? "rgba(74,222,128,0.15)" : "rgba(255,255,255,0.06)"}`,
-                    borderRadius: 16,
-                    padding: 20,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 16,
-                    animation: `cardIn 0.4s ease-out ${i * 0.06}s both`,
-                    position: "relative",
-                    overflow: "hidden",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.borderColor =
-                      isOnline ? "rgba(74,222,128,0.3)" : `${tier.color}40`;
-                    (e.currentTarget as HTMLDivElement).style.boxShadow =
-                      `0 8px 32px ${tier.glow}`;
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.borderColor =
-                      isOnline
-                        ? "rgba(74,222,128,0.15)"
-                        : "rgba(255,255,255,0.06)";
-                    (e.currentTarget as HTMLDivElement).style.boxShadow =
-                      "none";
+                    padding: "5px 14px",
+                    borderRadius: 8,
+                    border: `1px solid ${difficulty === d ? DIFF_COLORS[d] + "60" : "rgba(255,255,255,0.07)"}`,
+                    background:
+                      difficulty === d ? DIFF_COLORS[d] + "15" : "transparent",
+                    color: difficulty === d ? DIFF_COLORS[d] : "#52525b",
+                    fontFamily: "ui-monospace,monospace",
+                    fontSize: 9,
+                    fontWeight: 700,
+                    letterSpacing: "0.15em",
+                    textTransform: "uppercase",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
                   }}
                 >
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      right: 0,
-                      width: 60,
-                      height: 60,
-                      background: `radial-gradient(circle at top right, ${tier.color}10, transparent 70%)`,
-                      pointerEvents: "none",
-                    }}
-                  />
+                  {d}
+                </button>
+              ))}
+            </div>
+            <div
+              style={{
+                width: 1,
+                background: "rgba(255,255,255,0.05)",
+                margin: "0 4px",
+              }}
+            />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 4px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 9,
+                  color: "#52525b",
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Problem:
+              </span>
+              {(["same", "random"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  style={{
+                    padding: "5px 14px",
+                    borderRadius: 8,
+                    border: `1px solid ${mode === m ? "rgba(99,102,241,0.5)" : "rgba(255,255,255,0.07)"}`,
+                    background:
+                      mode === m ? "rgba(99,102,241,0.15)" : "transparent",
+                    color: mode === m ? "#818cf8" : "#52525b",
+                    fontFamily: "ui-monospace,monospace",
+                    fontSize: 9,
+                    fontWeight: 700,
+                    letterSpacing: "0.15em",
+                    textTransform: "uppercase",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {m === "same" ? "⚔ Same" : "🎲 Random"}
+                </button>
+              ))}
+            </div>
+          </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                    }}
-                  >
+          <div
+            style={{
+              padding: "10px 28px",
+              borderBottom: "1px solid rgba(255,255,255,0.05)",
+              display: "flex",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            {[
+              {
+                icon: <Target size={12} />,
+                label: "Online Now",
+                value: onlineUsers.length,
+                color: "#4ade80",
+              },
+              {
+                icon: <Trophy size={12} />,
+                label: "Total Nodes",
+                value: allUsers.length,
+                color: "#fbbf24",
+              },
+              {
+                icon: <Star size={12} />,
+                label: "Top Rating",
+                value: allUsers[0]?.current_rating || 0,
+                color: "#818cf8",
+              },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 16px",
+                  background: "rgba(255,255,255,0.02)",
+                  border: "1px solid rgba(255,255,255,0.05)",
+                  borderRadius: 8,
+                  fontSize: 10,
+                }}
+              >
+                <span style={{ color: stat.color }}>{stat.icon}</span>
+                <span
+                  style={{
+                    color: "#3f3f46",
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {stat.label}:
+                </span>
+                <span style={{ color: "#e4e4e7", fontWeight: 700 }}>
+                  {stat.value}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ padding: "20px 28px" }}>
+            {opponents.length === 0 ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "60px 0",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <ShieldAlert size={32} style={{ color: "#27272a" }} />
+                <p
+                  style={{
+                    fontSize: 11,
+                    color: "#3f3f46",
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  No nodes found
+                </p>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                  gap: 16,
+                }}
+              >
+                {opponents.map((opponent, i) => {
+                  const tier = getTier(opponent.tier);
+                  const isOnline = onlineIds.has(opponent.id);
+                  const isChallenging = challenging === opponent.id;
+                  return (
                     <div
-                      style={{ display: "flex", alignItems: "center", gap: 12 }}
+                      key={opponent.id}
+                      className="node-card"
+                      style={{
+                        background: "rgba(255,255,255,0.02)",
+                        border: `1px solid ${isOnline ? "rgba(74,222,128,0.15)" : "rgba(255,255,255,0.06)"}`,
+                        borderRadius: 16,
+                        padding: 20,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 16,
+                        animation: `cardIn 0.4s ease-out ${i * 0.06}s both`,
+                        position: "relative",
+                        overflow: "hidden",
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLDivElement).style.borderColor =
+                          isOnline ? "rgba(74,222,128,0.3)" : `${tier.color}40`;
+                        (e.currentTarget as HTMLDivElement).style.boxShadow =
+                          `0 8px 32px ${tier.glow}`;
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLDivElement).style.borderColor =
+                          isOnline
+                            ? "rgba(74,222,128,0.15)"
+                            : "rgba(255,255,255,0.06)";
+                        (e.currentTarget as HTMLDivElement).style.boxShadow =
+                          "none";
+                      }}
                     >
                       <div
                         style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 12,
-                          overflow: "hidden",
-                          border: `1.5px solid ${tier.color}40`,
-                          background: tier.bg,
-                          flexShrink: 0,
+                          position: "absolute",
+                          top: 0,
+                          right: 0,
+                          width: 60,
+                          height: 60,
+                          background: `radial-gradient(circle at top right, ${tier.color}10, transparent 70%)`,
+                          pointerEvents: "none",
+                        }}
+                      />
+
+                      <div
+                        style={{
                           display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 14,
-                          fontWeight: 900,
-                          color: tier.color,
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
                         }}
                       >
-                        {opponent.image_url ? (
-                          <img
-                            src={opponent.image_url}
-                            alt={opponent.name}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                            }}
-                          />
-                        ) : (
-                          opponent.name.slice(0, 2).toUpperCase()
-                        )}
-                      </div>
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            letterSpacing: "0.08em",
-                            color: "#fff",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          {opponent.name}
-                        </div>
                         <div
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: 6,
-                            marginTop: 3,
+                            gap: 12,
                           }}
                         >
                           <div
                             style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                              padding: "2px 8px",
-                              borderRadius: 4,
+                              width: 44,
+                              height: 44,
+                              borderRadius: 12,
+                              overflow: "hidden",
+                              border: `1.5px solid ${tier.color}40`,
                               background: tier.bg,
-                              border: `1px solid ${tier.color}30`,
+                              flexShrink: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: 14,
+                              fontWeight: 900,
+                              color: tier.color,
                             }}
                           >
-                            <span
+                            {opponent.image_url ? (
+                              <img
+                                src={opponent.image_url}
+                                alt={opponent.name}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                }}
+                              />
+                            ) : (
+                              opponent.name.slice(0, 2).toUpperCase()
+                            )}
+                          </div>
+                          <div>
+                            <div
                               style={{
-                                fontSize: 8,
-                                fontWeight: 900,
-                                letterSpacing: "0.15em",
-                                color: tier.color,
+                                fontSize: 13,
+                                fontWeight: 700,
+                                letterSpacing: "0.08em",
+                                color: "#fff",
                                 textTransform: "uppercase",
                               }}
                             >
-                              {opponent.tier}
-                            </span>
-                          </div>
-                          {isOnline && (
+                              {opponent.name}
+                            </div>
                             <div
                               style={{
-                                display: "inline-flex",
+                                display: "flex",
                                 alignItems: "center",
-                                gap: 4,
-                                padding: "2px 8px",
-                                borderRadius: 4,
-                                background: "rgba(74,222,128,0.1)",
-                                border: "1px solid rgba(74,222,128,0.2)",
+                                gap: 6,
+                                marginTop: 3,
                               }}
                             >
                               <div
                                 style={{
-                                  width: 4,
-                                  height: 4,
-                                  borderRadius: "50%",
-                                  background: "#4ade80",
-                                  animation: "pulse 2s ease infinite",
-                                }}
-                              />
-                              <span
-                                style={{
-                                  fontSize: 8,
-                                  color: "#4ade80",
-                                  letterSpacing: "0.15em",
-                                  textTransform: "uppercase",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  padding: "2px 8px",
+                                  borderRadius: 4,
+                                  background: tier.bg,
+                                  border: `1px solid ${tier.color}30`,
                                 }}
                               >
-                                Online
-                              </span>
+                                <span
+                                  style={{
+                                    fontSize: 8,
+                                    fontWeight: 900,
+                                    letterSpacing: "0.15em",
+                                    color: tier.color,
+                                    textTransform: "uppercase",
+                                  }}
+                                >
+                                  {opponent.tier}
+                                </span>
+                              </div>
+                              {isOnline && (
+                                <div
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                    padding: "2px 8px",
+                                    borderRadius: 4,
+                                    background: "rgba(74,222,128,0.1)",
+                                    border: "1px solid rgba(74,222,128,0.2)",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: 4,
+                                      height: 4,
+                                      borderRadius: "50%",
+                                      background: "#4ade80",
+                                      animation: "pulse 2s ease infinite",
+                                    }}
+                                  />
+                                  <span
+                                    style={{
+                                      fontSize: 8,
+                                      color: "#4ade80",
+                                      letterSpacing: "0.15em",
+                                      textTransform: "uppercase",
+                                    }}
+                                  >
+                                    Online
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                          )}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <div
+                            className={orbitron.className}
+                            style={{
+                              fontSize: 24,
+                              fontWeight: 900,
+                              color: "#fff",
+                              lineHeight: 1,
+                            }}
+                          >
+                            {opponent.current_rating}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 9,
+                              color: "#3f3f46",
+                              letterSpacing: "0.1em",
+                              marginTop: 3,
+                            }}
+                          >
+                            {opponent.contests_played} MATCHES
+                          </div>
+                          <RatingBar rating={opponent.current_rating} />
                         </div>
                       </div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div
-                        className={orbitron.className}
-                        style={{
-                          fontSize: 24,
-                          fontWeight: 900,
-                          color: "#fff",
-                          lineHeight: 1,
-                        }}
-                      >
-                        {opponent.current_rating}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 9,
-                          color: "#3f3f46",
-                          letterSpacing: "0.1em",
-                          marginTop: 3,
-                        }}
-                      >
-                        {opponent.contests_played} MATCHES
-                      </div>
-                      <RatingBar rating={opponent.current_rating} />
-                    </div>
-                  </div>
 
-                  <button
-                    className="challenge-btn"
-                    onClick={() => handleChallenge(opponent)}
-                    disabled={!!challenging || !isOnline}
-                    style={{
-                      width: "100%",
-                      padding: 11,
-                      borderRadius: 10,
-                      border: "none",
-                      cursor:
-                        isOnline && !challenging ? "pointer" : "not-allowed",
-                      background: !isOnline
-                        ? "rgba(255,255,255,0.03)"
-                        : isChallenging
-                          ? "rgba(99,102,241,0.3)"
-                          : "linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.08))",
-                      color: !isOnline
-                        ? "#3f3f46"
-                        : isChallenging
-                          ? "#818cf8"
-                          : "#a5b4fc",
-                      fontFamily: "ui-monospace,monospace",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      letterSpacing: "0.18em",
-                      textTransform: "uppercase",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                      borderTop: `1px solid ${isOnline ? "rgba(99,102,241,0.2)" : "rgba(255,255,255,0.04)"}`,
-                      opacity: challenging && !isChallenging ? 0.4 : 1,
-                    }}
-                    onMouseEnter={(e) => {
-                      if (isOnline && !challenging) {
-                        (
-                          e.currentTarget as HTMLButtonElement
-                        ).style.background =
-                          "linear-gradient(135deg,#6366f1,#4f46e5)";
-                        (e.currentTarget as HTMLButtonElement).style.color =
-                          "#fff";
-                        (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                          "0 4px 20px rgba(99,102,241,0.4)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (isOnline && !challenging) {
-                        (
-                          e.currentTarget as HTMLButtonElement
-                        ).style.background =
-                          "linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.08))";
-                        (e.currentTarget as HTMLButtonElement).style.color =
-                          "#a5b4fc";
-                        (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                          "none";
-                      }
-                    }}
-                  >
-                    {isChallenging ? (
-                      <>
-                        <Loader2
-                          size={12}
-                          style={{ animation: "spin 1s linear infinite" }}
-                        />{" "}
-                        Waiting for response...
-                      </>
-                    ) : !isOnline ? (
-                      "Offline"
-                    ) : (
-                      <>
-                        <Zap size={12} /> Issue Challenge
-                      </>
-                    )}
-                  </button>
-                </div>
-              );
-            })}
+                      <button
+                        className="challenge-btn"
+                        onClick={() => handleChallenge(opponent)}
+                        disabled={!!challenging || !isOnline}
+                        style={{
+                          width: "100%",
+                          padding: 11,
+                          borderRadius: 10,
+                          border: "none",
+                          cursor:
+                            isOnline && !challenging
+                              ? "pointer"
+                              : "not-allowed",
+                          background: !isOnline
+                            ? "rgba(255,255,255,0.03)"
+                            : isChallenging
+                              ? "rgba(99,102,241,0.3)"
+                              : "linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.08))",
+                          color: !isOnline
+                            ? "#3f3f46"
+                            : isChallenging
+                              ? "#818cf8"
+                              : "#a5b4fc",
+                          fontFamily: "ui-monospace,monospace",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          letterSpacing: "0.18em",
+                          textTransform: "uppercase",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 8,
+                          borderTop: `1px solid ${isOnline ? "rgba(99,102,241,0.2)" : "rgba(255,255,255,0.04)"}`,
+                          opacity: challenging && !isChallenging ? 0.4 : 1,
+                        }}
+                        onMouseEnter={(e) => {
+                          if (isOnline && !challenging) {
+                            (
+                              e.currentTarget as HTMLButtonElement
+                            ).style.background =
+                              "linear-gradient(135deg,#6366f1,#4f46e5)";
+                            (e.currentTarget as HTMLButtonElement).style.color =
+                              "#fff";
+                            (
+                              e.currentTarget as HTMLButtonElement
+                            ).style.boxShadow =
+                              "0 4px 20px rgba(99,102,241,0.4)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (isOnline && !challenging) {
+                            (
+                              e.currentTarget as HTMLButtonElement
+                            ).style.background =
+                              "linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.08))";
+                            (e.currentTarget as HTMLButtonElement).style.color =
+                              "#a5b4fc";
+                            (
+                              e.currentTarget as HTMLButtonElement
+                            ).style.boxShadow = "none";
+                          }
+                        }}
+                      >
+                        {isChallenging ? (
+                          <>
+                            <Loader2
+                              size={12}
+                              style={{ animation: "spin 1s linear infinite" }}
+                            />{" "}
+                            Waiting for response...
+                          </>
+                        ) : !isOnline ? (
+                          "Offline"
+                        ) : (
+                          <>
+                            <Zap size={12} /> Issue Challenge
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
