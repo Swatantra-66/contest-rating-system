@@ -279,6 +279,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       accepted: boolean;
     }) => {
       setChallenging(null);
+      setWaitingFor(null);
       if (payload.accepted) {
         const stored = sessionStorage.getItem(
           `challenge_meta_${payload.contest_id}`,
@@ -291,7 +292,6 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         );
       } else {
         alert("Opponent declined the challenge.");
-        setWaitingFor(null);
       }
     },
     [router],
