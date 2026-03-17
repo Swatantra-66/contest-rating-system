@@ -45,5 +45,21 @@ export async function reviewCode(params: {
   });
   if (!res.ok) throw new Error("Review unavailable");
   const data = await res.json();
-  return data.review;
+
+  if (data.verdict) {
+    return [
+      `VERDICT: ${data.verdict}`,
+      `COMPLEXITY: ${data.time_complexity} time · ${data.space_complexity} space`,
+      `QUALITY: ${data.quality_score}/100`,
+      data.strengths?.length ? `STRENGTHS: ${data.strengths.join(" · ")}` : "",
+      data.weaknesses?.length
+        ? `WEAKNESSES: ${data.weaknesses.join(" · ")}`
+        : "",
+      data.optimization ? `OPTIMIZE: ${data.optimization}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  return data.review || JSON.stringify(data);
 }
