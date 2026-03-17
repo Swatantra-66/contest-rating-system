@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import HackerDashboard from "@/components/HackerDashboard";
+
 import {
   LineChart,
   Line,
@@ -405,6 +407,7 @@ export default function ProfilePage() {
             </table>
           </div>
         </div>
+        <HackerDashboard userId={userId} />
       </main>
     </div>
   );
