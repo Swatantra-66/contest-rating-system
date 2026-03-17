@@ -28,7 +28,7 @@ const orbitron = Orbitron({
 export const metadata: Metadata = {
   title: "ELONODE",
   description:
-    "A high-performance percentile tracking system built with Go and Next.js",
+    "A coding duel contest platform with a rating system based on a transparent percentile model. Following each contest, it calculates beaten participants to determine a percentile category, assigns a predefined standard performance rating, and updates the user rating using a controlled adjustment formula",
 };
 
 export default function RootLayout({
