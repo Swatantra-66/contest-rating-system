@@ -2,6 +2,10 @@
 
 A coding duel contest platform with a rating system based on a transparent percentile model. Following each contest, it calculates beaten participants to determine a percentile category, assigns a predefined standard performance rating, and updates the user rating using a controlled adjustment formula. Built with a decoupled architecture, it features a custom rating engine that calculates performance trajectories and stores historical match data.
 
+<p align="center">
+  <img src="./docs/elonode.png" alt="EloNode Landing Page Preview" width="100%"/>
+</p>
+
 ## Live Website
 
 - **Frontend:** [https://elonode.online](https://elonode.online)
