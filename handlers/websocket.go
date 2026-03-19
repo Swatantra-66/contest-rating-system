@@ -34,6 +34,9 @@ type ChallengePayload struct {
 	FromRating int    `json:"from_rating"`
 	ToID       string `json:"to_id"`
 	ContestID  string `json:"contest_id"`
+	Difficulty string `json:"difficulty"`
+	Mode       string `json:"mode"`
+	TimerSecs  int    `json:"timer_secs"`
 }
 
 type ChallengeResponsePayload struct {
