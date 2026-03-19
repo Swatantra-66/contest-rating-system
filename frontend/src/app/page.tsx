@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef, ReactNode } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useUser, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 import UnicornScene from "unicornstudio-react";
-import BelowFold from "@/components/BelowFold";
 import {
   Swords,
   Trophy,
@@ -12,7 +11,6 @@ import {
   Loader2,
   Terminal,
   Zap,
-  ChevronDown,
 } from "lucide-react";
 
 export default function NodeHub() {
@@ -244,13 +242,13 @@ export default function NodeHub() {
               className="group flex flex-col items-center gap-2 text-zinc-500 hover:text-white transition-colors cursor-pointer"
             >
               <span className="text-[10px] font-mono uppercase tracking-[0.3em]">
-                Initialize Info
+                Go to System Docs for more info
               </span>
-              <ChevronDown className="w-5 h-5 animate-bounce text-zinc-400 group-hover:text-indigo-400" />
+              {/* <ChevronDown className="w-5 h-5 animate-bounce text-zinc-400 group-hover:text-indigo-400" /> */}
             </button>
           </div>
         </section>
-        <BelowFold nodeId={nodeId} />
+        {/* <BelowFold nodeId={nodeId} /> */}
       </div>
     </>
   );
