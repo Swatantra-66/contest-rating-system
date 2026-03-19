@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 import {
   Search,
@@ -170,12 +171,27 @@ export default function ArenaPage() {
       if (!res.ok) throw new Error();
       const data = await res.json();
       const contestId = data.id || data.ID;
+      const timerSecs =
+        difficulty === "Hard" ? 45 * 60 : difficulty === "Medium" ? 25 * 60 : 15 * 60;
+      const configRes = await fetch(`${API}contests/${contestId}/config`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          difficulty,
+          mode,
+          timer_secs: timerSecs,
+        }),
+      });
+      if (!configRes.ok) {
+        throw new Error("failed to lock contest config");
+      }
 
       send("challenge", {
         to_id: opponent.id,
         contest_id: contestId,
         difficulty,
         mode,
+        timer_secs: timerSecs,
       });
       setWaitingFor(contestId);
     } catch {
@@ -676,6 +692,25 @@ export default function ArenaPage() {
                   {m === "same" ? "⚔ Same" : "🎲 Random"}
                 </button>
               ))}
+              <Link
+                href="/team-contests/new"
+                style={{
+                  marginLeft: 8,
+                  padding: "5px 14px",
+                  borderRadius: 8,
+                  border: "1px solid rgba(251,191,36,0.5)",
+                  background: "rgba(251,191,36,0.12)",
+                  color: "#fbbf24",
+                  fontFamily: "ui-monospace,monospace",
+                  fontSize: 9,
+                  fontWeight: 700,
+                  letterSpacing: "0.15em",
+                  textTransform: "uppercase",
+                  textDecoration: "none",
+                }}
+              >
+                3v3 ICPC
+              </Link>
             </div>
           </div>
 
@@ -849,9 +884,12 @@ export default function ArenaPage() {
                             }}
                           >
                             {opponent.image_url ? (
-                              <img
+                              <Image
                                 src={opponent.image_url}
                                 alt={opponent.name}
+                                width={44}
+                                height={44}
+                                unoptimized
                                 style={{
                                   width: "100%",
                                   height: "100%",
