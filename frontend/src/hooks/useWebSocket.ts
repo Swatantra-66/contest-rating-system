@@ -18,6 +18,7 @@ export interface ChallengePayload {
   contest_id: string;
   difficulty: string;
   mode: string;
+  timer_secs?: number;
 }
 
 export interface WSHandlers {
@@ -47,6 +48,7 @@ export function useWebSocket(params: {
   handlers: WSHandlers;
   enabled: boolean;
 }) {
+  const { enabled, userId, userName, tier, imageUrl, handlers } = params;
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
 
@@ -57,9 +59,9 @@ export function useWebSocket(params: {
   }, []);
 
   useEffect(() => {
-    if (!params.enabled || !params.userId) return;
+    if (!enabled || !userId) return;
 
-    const url = `${WS_URL}?user_id=${params.userId}&user_name=${encodeURIComponent(params.userName)}&tier=${params.tier}&image_url=${encodeURIComponent(params.imageUrl)}`;
+    const url = `${WS_URL}?user_id=${userId}&user_name=${encodeURIComponent(userName)}&tier=${tier}&image_url=${encodeURIComponent(imageUrl)}`;
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
@@ -79,25 +81,25 @@ export function useWebSocket(params: {
 
         switch (msg.type) {
           case "online_users":
-            params.handlers.onOnlineUsers?.(payload);
+            handlers.onOnlineUsers?.(payload);
             break;
           case "challenge_received":
-            params.handlers.onChallengeReceived?.(payload);
+            handlers.onChallengeReceived?.(payload);
             break;
           case "challenge_response":
-            params.handlers.onChallengeResponse?.(payload);
+            handlers.onChallengeResponse?.(payload);
             break;
           case "ready_update":
-            params.handlers.onReadyUpdate?.(payload);
+            handlers.onReadyUpdate?.(payload);
             break;
           case "duel_start":
-            params.handlers.onDuelStart?.(payload);
+            handlers.onDuelStart?.(payload);
             break;
           case "opponent_left":
-            params.handlers.onOpponentLeft?.(payload);
+            handlers.onOpponentLeft?.(payload);
             break;
           case "opponent_won":
-            params.handlers.onOpponentWon?.(payload);
+            handlers.onOpponentWon?.(payload);
             break;
         }
       } catch {}
@@ -106,7 +108,7 @@ export function useWebSocket(params: {
     return () => {
       ws.close();
     };
-  }, [params.enabled, params.userId]);
+  }, [enabled, userId, userName, tier, imageUrl, handlers]);
 
   return { send, connected };
 }
