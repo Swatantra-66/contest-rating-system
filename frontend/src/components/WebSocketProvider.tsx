@@ -156,6 +156,20 @@ function ChallengeNotification({
           {challenge.mode === "random" ? "Random" : "Same"}
         </span>
       </p>
+      <p
+        style={{
+          fontSize: 10,
+          color: "#52525b",
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          marginBottom: 14,
+        }}
+      >
+        Timer:{" "}
+        <span style={{ color: "#fbbf24" }}>
+          {Math.max(1, Math.round((challenge.timer_secs || 900) / 60))} min
+        </span>
+      </p>
       <div
         style={{
           height: 2,
@@ -287,14 +301,16 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         const meta = stored
           ? JSON.parse(stored)
           : { difficulty: "Easy", mode: "same" };
+        const acceptedByUser = onlineUsers.find((u) => u.user_id === payload.to_id);
+        const opponentName = acceptedByUser?.user_name || payload.to_id;
         router.push(
-          `/duel/${payload.contest_id}?opponent=${encodeURIComponent(payload.to_id)}&opponentId=${payload.to_id}&difficulty=${meta.difficulty}&mode=${meta.mode}`,
+          `/duel/${payload.contest_id}?opponent=${encodeURIComponent(opponentName)}&opponentId=${payload.to_id}&difficulty=${meta.difficulty}&mode=${meta.mode}`,
         );
       } else {
         alert("Opponent declined the challenge.");
       }
     },
-    [router],
+    [router, onlineUsers],
   );
 
   const activeId = myNodeId || user?.id;
