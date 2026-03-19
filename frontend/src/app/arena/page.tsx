@@ -172,7 +172,11 @@ export default function ArenaPage() {
       const data = await res.json();
       const contestId = data.id || data.ID;
       const timerSecs =
-        difficulty === "Hard" ? 45 * 60 : difficulty === "Medium" ? 25 * 60 : 15 * 60;
+        difficulty === "Hard"
+          ? 45 * 60
+          : difficulty === "Medium"
+            ? 25 * 60
+            : 15 * 60;
       const configRes = await fetch(`${API}contests/${contestId}/config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -253,12 +257,13 @@ export default function ArenaPage() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#05060b",
+        background:
+          "radial-gradient(1200px 600px at 10% -10%, rgba(37,99,235,0.18), transparent 65%), radial-gradient(900px 500px at 100% 0%, rgba(99,102,241,0.14), transparent 60%), #04050a",
         fontFamily: "ui-monospace,monospace",
         color: "#e4e4e7",
         position: "relative",
         display: "flex",
-        alignItems: "center",
+        alignItems: "flex-start",
         justifyContent: "center",
       }}
     >
@@ -290,7 +295,7 @@ export default function ArenaPage() {
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
         .node-card{transition:all 0.25s ease}
-        .node-card:hover{transform:translateY(-3px)}
+        .node-card:hover{transform:translateY(-4px)}
         .challenge-btn{transition:all 0.2s ease}
       `}</style>
 
@@ -427,15 +432,15 @@ export default function ArenaPage() {
 
       <div
         style={{
-          maxWidth: 1100,
+          maxWidth: 1240,
           width: "100%",
           margin: "0 auto",
-          padding: "32px 24px",
+          padding: "22px 24px 36px",
           position: "relative",
           zIndex: 1,
         }}
       >
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 18 }}>
           <Link
             href="/"
             style={{
@@ -457,22 +462,25 @@ export default function ArenaPage() {
         </div>
         <div
           style={{
-            background: "rgba(5,6,11,0.45)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 20,
-            backdropFilter: "blur(20px)",
+            background:
+              "linear-gradient(180deg, rgba(9,12,24,0.84) 0%, rgba(5,7,16,0.82) 100%)",
+            border: "1px solid rgba(99,102,241,0.22)",
+            borderRadius: 24,
+            backdropFilter: "blur(24px)",
             overflow: "hidden",
+            boxShadow:
+              "0 20px 70px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04)",
           }}
         >
           <div
             style={{
-              padding: "20px 28px",
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
+              padding: "24px 28px 20px",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               flexWrap: "wrap",
-              gap: 16,
+              gap: 20,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -502,9 +510,9 @@ export default function ArenaPage() {
                   <h1
                     className={orbitron.className}
                     style={{
-                      fontSize: 32,
+                      fontSize: 36,
                       fontWeight: 900,
-                      letterSpacing: "-0.02em",
+                      letterSpacing: "-0.03em",
                       color: "#fff",
                       textTransform: "uppercase",
                       margin: 0,
@@ -544,14 +552,14 @@ export default function ArenaPage() {
                 </div>
                 <p
                   style={{
-                    fontSize: 10,
-                    color: "#3f3f46",
-                    letterSpacing: "0.2em",
+                    fontSize: 10.5,
+                    color: "#71717a",
+                    letterSpacing: "0.16em",
                     textTransform: "uppercase",
                     marginLeft: 48,
                   }}
                 >
-                  Challenge online nodes to a real-time duel
+                  Clean 1v1 duels with synced rules and real-time accept flow
                 </p>
               </div>
               <div style={{ position: "relative" }}>
@@ -570,24 +578,29 @@ export default function ArenaPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Target specific node..."
                   style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.07)",
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(99,102,241,0.22)",
                     borderRadius: 10,
-                    padding: "10px 14px 10px 36px",
+                    padding: "11px 14px 11px 36px",
                     color: "#e4e4e7",
                     fontFamily: "ui-monospace,monospace",
                     fontSize: 11,
                     letterSpacing: "0.1em",
-                    width: 240,
+                    width: 300,
                     outline: "none",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
                   }}
-                  onFocus={(e) =>
-                    (e.currentTarget.style.borderColor = "rgba(99,102,241,0.4)")
-                  }
-                  onBlur={(e) =>
-                    (e.currentTarget.style.borderColor =
-                      "rgba(255,255,255,0.07)")
-                  }
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor =
+                      "rgba(129,140,248,0.55)";
+                    e.currentTarget.style.boxShadow =
+                      "0 0 0 3px rgba(99,102,241,0.18)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(99,102,241,0.22)";
+                    e.currentTarget.style.boxShadow =
+                      "inset 0 1px 0 rgba(255,255,255,0.03)";
+                  }}
                 />
               </div>
             </div>
@@ -595,10 +608,10 @@ export default function ArenaPage() {
 
           <div
             style={{
-              padding: "12px 28px",
-              borderBottom: "1px solid rgba(255,255,255,0.05)",
+              padding: "14px 28px",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
               display: "flex",
-              gap: 12,
+              gap: 14,
               flexWrap: "wrap",
             }}
           >
@@ -716,8 +729,8 @@ export default function ArenaPage() {
 
           <div
             style={{
-              padding: "10px 28px",
-              borderBottom: "1px solid rgba(255,255,255,0.05)",
+              padding: "12px 28px 14px",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
               display: "flex",
               gap: 12,
               flexWrap: "wrap",
@@ -749,10 +762,10 @@ export default function ArenaPage() {
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  padding: "8px 16px",
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.05)",
-                  borderRadius: 8,
+                  padding: "9px 16px",
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 10,
                   fontSize: 10,
                 }}
               >
@@ -801,8 +814,8 @@ export default function ArenaPage() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-                  gap: 16,
+                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                  gap: 18,
                 }}
               >
                 {opponents.map((opponent, i) => {
@@ -814,7 +827,8 @@ export default function ArenaPage() {
                       key={opponent.id}
                       className="node-card"
                       style={{
-                        background: "rgba(255,255,255,0.02)",
+                        background:
+                          "linear-gradient(165deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015))",
                         border: `1px solid ${isOnline ? "rgba(74,222,128,0.15)" : "rgba(255,255,255,0.06)"}`,
                         borderRadius: 16,
                         padding: 20,
@@ -829,7 +843,7 @@ export default function ArenaPage() {
                         (e.currentTarget as HTMLDivElement).style.borderColor =
                           isOnline ? "rgba(74,222,128,0.3)" : `${tier.color}40`;
                         (e.currentTarget as HTMLDivElement).style.boxShadow =
-                          `0 8px 32px ${tier.glow}`;
+                          `0 12px 36px ${tier.glow}`;
                       }}
                       onMouseLeave={(e) => {
                         (e.currentTarget as HTMLDivElement).style.borderColor =
@@ -1011,7 +1025,7 @@ export default function ArenaPage() {
                         disabled={!!challenging || !isOnline}
                         style={{
                           width: "100%",
-                          padding: 11,
+                          padding: 12,
                           borderRadius: 10,
                           border: "none",
                           cursor:
