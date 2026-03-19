@@ -9,6 +9,8 @@ interface MetaData {
   return: { type: string };
 }
 
+type InputKind = "int" | "bool" | "string" | "array_int" | "matrix_int" | "json";
+
 function parseMetaData(raw: string): MetaData | null {
   try {
     return JSON.parse(raw);
@@ -17,249 +19,102 @@ function parseMetaData(raw: string): MetaData | null {
   }
 }
 
-function lcTypeToPython(t: string): string {
-  if (t.startsWith("List[")) return "list";
-  if (t === "integer" || t === "int") return "int";
-  if (t === "string" || t === "str") return "str";
-  if (t === "boolean" || t === "bool") return "bool";
-  if (t === "float" || t === "double") return "float";
-  if (t.startsWith("TreeNode")) return "tree";
-  if (t.startsWith("ListNode")) return "linked_list";
-  if (t.startsWith("character")) return "str";
-  if (t.includes("[][]") || t.startsWith("List[List")) return "matrix";
-  return "any";
+function isMatrixType(t: string): boolean {
+  const lower = t.toLowerCase();
+  return (
+    lower.includes("[][]") ||
+    lower.startsWith("list[list") ||
+    lower.includes("matrix")
+  );
 }
 
-function parseValue(varName: string, lcType: string): string {
-  const t = lcTypeToPython(lcType);
-  if (t === "tree") {
-    return `${varName} = build_tree(json.loads(input()))`;
-  }
-  if (t === "linked_list") {
-    return `${varName} = build_list(json.loads(input()))`;
-  }
-  if (t === "int") return `${varName} = int(input())`;
-  if (t === "str") return `${varName} = input().strip().strip('"')`;
-  if (t === "bool") return `${varName} = input().strip().lower() == "true"`;
-  if (t === "float") return `${varName} = float(input())`;
-  if (t === "matrix") return `${varName} = json.loads(input())`;
+function isArrayType(t: string): boolean {
+  const lower = t.toLowerCase();
+  return lower.includes("[]") || lower.startsWith("list[") || lower.startsWith("array");
+}
+
+function inputKindFromLcType(t: string): InputKind {
+  const lower = t.toLowerCase();
+  if (isMatrixType(lower)) return "matrix_int";
+  if (isArrayType(lower)) return "array_int";
+  if (lower === "integer" || lower === "int") return "int";
+  if (lower === "boolean" || lower === "bool") return "bool";
+  if (lower === "string" || lower === "str" || lower.startsWith("character")) return "string";
+  return "json";
+}
+
+function parseValuePython(varName: string, lcType: string): string {
+  const kind = inputKindFromLcType(lcType);
+  if (kind === "int") return `${varName} = int(input())`;
+  if (kind === "bool") return `${varName} = input().strip().lower() == "true"`;
+  if (kind === "string") return `${varName} = input().strip().strip('"')`;
   return `${varName} = json.loads(input())`;
 }
 
-const TREE_HELPERS_PYTHON = `
-import json
-from collections import deque
-from typing import Optional, List
-
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
-
-def build_tree(vals):
-    if not vals:
-        return None
-    root = TreeNode(vals[0])
-    q = deque([root])
-    i = 1
-    while q and i < len(vals):
-        node = q.popleft()
-        if i < len(vals) and vals[i] is not None:
-            node.left = TreeNode(vals[i])
-            q.append(node.left)
-        i += 1
-        if i < len(vals) and vals[i] is not None:
-            node.right = TreeNode(vals[i])
-            q.append(node.right)
-        i += 1
-    return root
-
-def tree_to_list(root):
-    if not root:
-        return []
-    res, q = [], deque([root])
-    while q:
-        node = q.popleft()
-        if node:
-            res.append(node.val)
-            q.append(node.left)
-            q.append(node.right)
-        else:
-            res.append(None)
-    while res and res[-1] is None:
-        res.pop()
-    return res
-`;
-
-const LIST_HELPERS_PYTHON = `
-class ListNode:
-    def __init__(self, val=0, next=None):
-        self.val = val
-        self.next = next
-
-def build_list(vals):
-    dummy = ListNode(0)
-    cur = dummy
-    for v in vals:
-        cur.next = ListNode(v)
-        cur = cur.next
-    return dummy.next
-
-def list_to_arr(head):
-    res = []
-    while head:
-        res.append(head.val)
-        head = head.next
-    return res
-`;
-
-function needsTreeHelper(params: MetaParam[], retType: string): boolean {
-  return (
-    params.some((p) => p.type.startsWith("TreeNode")) ||
-    retType.startsWith("TreeNode")
-  );
-}
-
-function needsListHelper(params: MetaParam[], retType: string): boolean {
-  return (
-    params.some((p) => p.type.startsWith("ListNode")) ||
-    retType.startsWith("ListNode")
-  );
-}
-
 function formatReturnPython(retType: string, resultVar: string): string {
-  const t = lcTypeToPython(retType);
-  if (t === "tree") return `print(tree_to_list(${resultVar}))`;
-  if (t === "linked_list") return `print(list_to_arr(${resultVar}))`;
-  if (t === "bool") return `print(str(${resultVar}).lower())`;
+  if (inputKindFromLcType(retType) === "bool") return `print(str(${resultVar}).lower())`;
   return `print(json.dumps(${resultVar}) if isinstance(${resultVar}, (list, dict)) else ${resultVar})`;
 }
 
 export function generatePythonWrapper(
   userCode: string,
   metaRaw: string,
-  exampleInputs: string,
+  _examples: string,
 ): string {
+  void _examples;
   const meta = parseMetaData(metaRaw);
   if (!meta) return userCode;
 
-  const retType = meta.return?.type || "any";
   const params = meta.params || [];
-
-  const needsTree = needsTreeHelper(params, retType);
-  const needsList = needsListHelper(params, retType);
-
-  let helpers = "import json\nfrom typing import Optional, List\n";
-  if (needsTree) helpers += TREE_HELPERS_PYTHON;
-  else helpers += "\n";
-  if (needsList) helpers += LIST_HELPERS_PYTHON;
-
-  const parseLines = params.map((p) => parseValue(p.name, p.type)).join("\n");
+  const parseLines = params.map((p) => parseValuePython(p.name, p.type)).join("\n");
   const callArgs = params.map((p) => p.name).join(", ");
-  const returnLine = formatReturnPython(retType, "result");
+  const returnLine = formatReturnPython(meta.return?.type || "any", "result");
 
-  return `${helpers}
+  return `import json
 ${userCode}
 
 if __name__ == "__main__":
     sol = Solution()
 ${parseLines
   .split("\n")
-  .map((l) => "    " + l)
+  .filter(Boolean)
+  .map((l) => `    ${l}`)
   .join("\n")}
     result = sol.${meta.name}(${callArgs})
     ${returnLine}
 `;
 }
 
-function lcTypeToJS(t: string): string {
-  if (t.startsWith("TreeNode")) return "tree";
-  if (t.startsWith("ListNode")) return "linked_list";
-  if (t === "integer" || t === "int") return "int";
-  if (t === "boolean" || t === "bool") return "bool";
-  return "json";
-}
-
-function parseValueJS(varName: string, lcType: string): string {
-  const t = lcTypeToJS(lcType);
-  if (t === "tree")
-    return `const ${varName} = buildTree(JSON.parse(lines[lineIdx++]));`;
-  if (t === "linked_list")
-    return `const ${varName} = buildList(JSON.parse(lines[lineIdx++]));`;
-  if (t === "int") return `const ${varName} = parseInt(lines[lineIdx++]);`;
-  if (t === "bool")
-    return `const ${varName} = lines[lineIdx++].trim() === "true";`;
-  return `const ${varName} = JSON.parse(lines[lineIdx++]);`;
+function parseValueJS(varName: string, lcType: string, idxExpr: string): string {
+  const kind = inputKindFromLcType(lcType);
+  if (kind === "int") return `const ${varName} = parseInt(${idxExpr}, 10);`;
+  if (kind === "bool") return `const ${varName} = ${idxExpr}.trim().toLowerCase() === "true";`;
+  if (kind === "string") return `const ${varName} = ${idxExpr}.trim().replace(/^"(.*)"$/, "$1");`;
+  return `const ${varName} = JSON.parse(${idxExpr});`;
 }
 
 function formatReturnJS(retType: string, resultVar: string): string {
-  const t = lcTypeToJS(retType);
-  if (t === "tree")
-    return `console.log(JSON.stringify(treeToList(${resultVar})));`;
-  if (t === "linked_list")
-    return `console.log(JSON.stringify(listToArr(${resultVar})));`;
-  if (t === "bool") return `console.log(${resultVar}.toString());`;
-  return `console.log(typeof ${resultVar} === 'object' ? JSON.stringify(${resultVar}) : ${resultVar});`;
+  if (inputKindFromLcType(retType) === "bool") return `console.log(${resultVar} ? "true" : "false");`;
+  if (isArrayType(retType) || isMatrixType(retType)) return `console.log(JSON.stringify(${resultVar}));`;
+  return `console.log(${resultVar});`;
 }
 
 export function generateJSWrapper(userCode: string, metaRaw: string): string {
   const meta = parseMetaData(metaRaw);
   if (!meta) return userCode;
 
-  const retType = meta.return?.type || "any";
   const params = meta.params || [];
-  const needsTree = needsTreeHelper(params, retType);
-  const needsList = needsListHelper(params, retType);
-
-  const treeHelper = needsTree
-    ? `
-function buildTree(vals) {
-  if (!vals || !vals.length) return null;
-  const root = { val: vals[0], left: null, right: null };
-  const q = [root]; let i = 1;
-  while (q.length && i < vals.length) {
-    const node = q.shift();
-    if (i < vals.length && vals[i] !== null) { node.left = { val: vals[i], left: null, right: null }; q.push(node.left); } i++;
-    if (i < vals.length && vals[i] !== null) { node.right = { val: vals[i], left: null, right: null }; q.push(node.right); } i++;
-  }
-  return root;
-}
-function treeToList(root) {
-  if (!root) return [];
-  const res = [], q = [root];
-  while (q.length) { const n = q.shift(); if (n) { res.push(n.val); q.push(n.left); q.push(n.right); } else res.push(null); }
-  while (res.length && res[res.length-1] === null) res.pop();
-  return res;
-}`
-    : "";
-
-  const listHelper = needsList
-    ? `
-function buildList(vals) {
-  let dummy = { val: 0, next: null }, cur = dummy;
-  for (const v of vals) { cur.next = { val: v, next: null }; cur = cur.next; }
-  return dummy.next;
-}
-function listToArr(head) {
-  const res = [];
-  while (head) { res.push(head.val); head = head.next; }
-  return res;
-}`
-    : "";
-
   const parseLines = params
-    .map((p) => "  " + parseValueJS(p.name, p.type))
+    .map((p, i) => `  ${parseValueJS(p.name, p.type, `lines[${i}] ?? ""`)}`)
     .join("\n");
   const callArgs = params.map((p) => p.name).join(", ");
-  const returnLine = "  " + formatReturnJS(retType, "result");
+  const returnLine = `  ${formatReturnJS(meta.return?.type || "any", "result")}`;
 
-  return `${treeHelper}${listHelper}
+  return `${userCode}
 
-${userCode}
-
-const lines = require('fs').readFileSync('/dev/stdin','utf8').trim().split('\\n');
-let lineIdx = 0;
+const fs = require("fs");
+const raw = fs.readFileSync(0, "utf8").trim();
+const lines = raw.length ? raw.split("\\n") : [];
 ${parseLines}
 const sol = new Solution();
 const result = sol.${meta.name}(${callArgs});
@@ -267,109 +122,362 @@ ${returnLine}
 `;
 }
 
+function parseValueCpp(varName: string, lcType: string): string[] {
+  const kind = inputKindFromLcType(lcType);
+  if (kind === "int") return [`    int ${varName}; cin >> ${varName};`];
+  if (kind === "bool")
+    return [
+      `    string __${varName}; cin >> __${varName};`,
+      `    bool ${varName} = (__${varName} == "true");`,
+    ];
+  if (kind === "string") return [`    string ${varName}; cin >> ${varName};`];
+  if (kind === "matrix_int")
+    return [
+      `    string __${varName}; getline(cin >> ws, __${varName});`,
+      `    vector<vector<int>> ${varName} = parseIntMatrix(__${varName});`,
+    ];
+  return [
+    `    string __${varName}; getline(cin >> ws, __${varName});`,
+    `    vector<int> ${varName} = parseIntArray(__${varName});`,
+  ];
+}
+
+function formatReturnCpp(retType: string): string {
+  const kind = inputKindFromLcType(retType);
+  if (kind === "bool") return `cout << (result ? "true" : "false") << endl;`;
+  if (kind === "matrix_int") return `cout << toJsonMatrix(result) << endl;`;
+  if (kind === "array_int") return `cout << toJsonArray(result) << endl;`;
+  return `cout << result << endl;`;
+}
+
 export function generateCppWrapper(userCode: string, metaRaw: string): string {
   const meta = parseMetaData(metaRaw);
   if (!meta) return userCode;
 
-  const retType = meta.return?.type || "void";
   const params = meta.params || [];
-
-  const needsTree = needsTreeHelper(params, retType);
-  const needsList = needsListHelper(params, retType);
-
-  const treeHelper = needsTree
-    ? `
-struct TreeNode {
-    int val;
-    TreeNode *left, *right;
-    TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
-};
-TreeNode* buildTree(vector<string>& vals, int i) {
-    if (i >= vals.size() || vals[i] == "null") return nullptr;
-    TreeNode* root = new TreeNode(stoi(vals[i]));
-    root->left  = buildTree(vals, 2*i+1);
-    root->right = buildTree(vals, 2*i+2);
-    return root;
-}`
-    : "";
-
-  const listHelper = needsList
-    ? `
-struct ListNode {
-    int val;
-    ListNode* next;
-    ListNode(int x) : val(x), next(nullptr) {}
-};
-ListNode* buildList(vector<int>& v) {
-    ListNode dummy(0); ListNode* cur = &dummy;
-    for (int x : v) { cur->next = new ListNode(x); cur = cur->next; }
-    return dummy.next;
-}`
-    : "";
-
-  const parseLines: string[] = [];
-  const callArgs: string[] = [];
-
-  for (const p of params) {
-    const t = lcTypeToPython(p.type);
-    if (t === "int") {
-      parseLines.push(`    int ${p.name}; cin >> ${p.name};`);
-    } else if (t === "str") {
-      parseLines.push(`    string ${p.name}; cin >> ${p.name};`);
-    } else if (t === "bool") {
-      parseLines.push(
-        `    string _${p.name}_s; cin >> _${p.name}_s; bool ${p.name} = (_${p.name}_s == "true");`,
-      );
-    } else {
-      parseLines.push(
-        `    string _${p.name}_raw; getline(cin, _${p.name}_raw);`,
-      );
-      parseLines.push(
-        `    vector<int> ${p.name}_arr = parseIntArray(_${p.name}_raw);`,
-      );
-      if (t === "linked_list") {
-        parseLines.push(`    ListNode* ${p.name} = buildList(${p.name}_arr);`);
-      } else {
-        parseLines.push(`    auto ${p.name} = ${p.name}_arr;`);
-      }
-    }
-    callArgs.push(p.name);
-  }
-
-  const retPrint =
-    retType === "boolean" || retType === "bool"
-      ? `cout << (result ? "true" : "false") << endl;`
-      : retType === "string"
-        ? `cout << result << endl;`
-        : retType.includes("vector") || retType.includes("List")
-          ? `for(auto x : result) cout << x << " "; cout << endl;`
-          : `cout << result << endl;`;
+  const parseLines = params.flatMap((p) => parseValueCpp(p.name, p.type)).join("\n");
+  const callArgs = params.map((p) => p.name).join(", ");
+  const returnLine = formatReturnCpp(meta.return?.type || "any");
 
   return `#include <bits/stdc++.h>
 using namespace std;
-${treeHelper}${listHelper}
 
 vector<int> parseIntArray(string s) {
-    vector<int> res;
-    s.erase(remove(s.begin(), s.end(), '['), s.end());
-    s.erase(remove(s.begin(), s.end(), ']'), s.end());
-    stringstream ss(s);
+    vector<int> out;
+    s.erase(remove_if(s.begin(), s.end(), ::isspace), s.end());
+    if (s.size() < 2) return out;
+    s = s.substr(1, s.size() - 2);
+    if (s.empty()) return out;
     string token;
-    while (getline(ss, token, ',')) {
-        token.erase(remove(token.begin(), token.end(), ' '), token.end());
-        if (!token.empty() && token != "null") res.push_back(stoi(token));
+    stringstream ss(s);
+    while (getline(ss, token, ',')) out.push_back(stoi(token));
+    return out;
+}
+
+vector<vector<int>> parseIntMatrix(string s) {
+    vector<vector<int>> out;
+    int depth = 0, start = -1;
+    for (int i = 0; i < (int)s.size(); i++) {
+        if (s[i] == '[') {
+            if (depth == 1) start = i;
+            depth++;
+        } else if (s[i] == ']') {
+            depth--;
+            if (depth == 1 && start != -1) out.push_back(parseIntArray(s.substr(start, i - start + 1)));
+        }
     }
-    return res;
+    return out;
+}
+
+string toJsonArray(const vector<int>& v) {
+    stringstream ss;
+    ss << "[";
+    for (size_t i = 0; i < v.size(); i++) {
+        if (i) ss << ",";
+        ss << v[i];
+    }
+    ss << "]";
+    return ss.str();
+}
+
+string toJsonMatrix(const vector<vector<int>>& v) {
+    stringstream ss;
+    ss << "[";
+    for (size_t i = 0; i < v.size(); i++) {
+        if (i) ss << ",";
+        ss << toJsonArray(v[i]);
+    }
+    ss << "]";
+    return ss.str();
 }
 
 ${userCode}
 
 int main() {
-${parseLines.join("\n")}
+${parseLines}
     Solution sol;
-    auto result = sol.${meta.name}(${callArgs.join(", ")});
-    ${retPrint}
+    auto result = sol.${meta.name}(${callArgs});
+    ${returnLine}
     return 0;
+}
+`;
+}
+
+function formatReturnJava(retType: string): string {
+  const kind = inputKindFromLcType(retType);
+  if (kind === "bool") return `System.out.println(result ? "true" : "false");`;
+  if (kind === "matrix_int") return `System.out.println(toJson(result));`;
+  if (kind === "array_int") return `System.out.println(toJson(result));`;
+  return `System.out.println(result);`;
+}
+
+export function generateJavaWrapper(userCode: string, metaRaw: string): string {
+  const meta = parseMetaData(metaRaw);
+  if (!meta) return userCode;
+
+  const params = meta.params || [];
+  const parseLines = params
+    .map((p, i) => {
+      const kind = inputKindFromLcType(p.type);
+      if (kind === "int") return `        int ${p.name} = Integer.parseInt((lines.size() > ${i} ? lines.get(${i}) : "0").trim());`;
+      if (kind === "bool")
+        return `        boolean ${p.name} = (lines.size() > ${i} ? lines.get(${i}) : "false").trim().equalsIgnoreCase("true");`;
+      if (kind === "string")
+        return `        String ${p.name} = stripQuotes(lines.size() > ${i} ? lines.get(${i}) : "");`;
+      if (kind === "matrix_int")
+        return `        int[][] ${p.name} = parseIntMatrix(lines.size() > ${i} ? lines.get(${i}) : "[]");`;
+      return `        int[] ${p.name} = parseIntArray(lines.size() > ${i} ? lines.get(${i}) : "[]");`;
+    })
+    .join("\n");
+  const callArgs = params.map((p) => p.name).join(", ");
+  const returnLine = formatReturnJava(meta.return?.type || "any");
+
+  return `import java.io.*;
+import java.util.*;
+
+${userCode}
+
+class Main {
+    static String stripQuotes(String s) {
+        s = s.trim();
+        if (s.length() >= 2 && s.startsWith("\\"") && s.endsWith("\\"")) return s.substring(1, s.length() - 1);
+        return s;
+    }
+
+    static int[] parseIntArray(String s) {
+        s = s.replaceAll("\\\\s+", "").trim();
+        if (s.length() < 2) return new int[0];
+        s = s.substring(1, s.length() - 1);
+        if (s.isEmpty()) return new int[0];
+        String[] parts = s.split(",");
+        int[] arr = new int[parts.length];
+        for (int i = 0; i < parts.length; i++) arr[i] = Integer.parseInt(parts[i]);
+        return arr;
+    }
+
+    static int[][] parseIntMatrix(String s) {
+        List<int[]> rows = new ArrayList<>();
+        int depth = 0, start = -1;
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch == '[') {
+                if (depth == 1) start = i;
+                depth++;
+            } else if (ch == ']') {
+                depth--;
+                if (depth == 1 && start >= 0) rows.add(parseIntArray(s.substring(start, i + 1)));
+            }
+        }
+        return rows.toArray(new int[rows.size()][]);
+    }
+
+    static String toJson(int[] arr) {
+        return Arrays.toString(arr).replace(" ", "");
+    }
+
+    static String toJson(int[][] matrix) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (int i = 0; i < matrix.length; i++) {
+            if (i > 0) sb.append(",");
+            sb.append(toJson(matrix[i]));
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    public static void main(String[] args) throws Exception {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        List<String> lines = new ArrayList<>();
+        String line;
+        while ((line = br.readLine()) != null) lines.add(line);
+${parseLines}
+        Solution sol = new Solution();
+        var result = sol.${meta.name}(${callArgs});
+        ${returnLine}
+    }
+}
+`;
+}
+
+function formatReturnGo(retType: string): string {
+  const kind = inputKindFromLcType(retType);
+  if (kind === "bool") return `if result { fmt.Println("true") } else { fmt.Println("false") }`;
+  if (kind === "array_int" || kind === "matrix_int") return `b, _ := json.Marshal(result); fmt.Println(string(b))`;
+  return `fmt.Println(result)`;
+}
+
+export function generateGoWrapper(userCode: string, metaRaw: string): string {
+  const meta = parseMetaData(metaRaw);
+  if (!meta) return userCode;
+
+  const params = meta.params || [];
+  const parseLines = params
+    .map((p, i) => {
+      const kind = inputKindFromLcType(p.type);
+      if (kind === "int")
+        return `    ${p.name}, _ := strconv.Atoi(strings.TrimSpace(getLine(lines, ${i}, "0")))`;
+      if (kind === "bool")
+        return `    ${p.name} := strings.EqualFold(strings.TrimSpace(getLine(lines, ${i}, "false")), "true")`;
+      if (kind === "string")
+        return `    ${p.name} := strings.Trim(strings.TrimSpace(getLine(lines, ${i}, "")), "\\\"")`;
+      if (kind === "matrix_int")
+        return `    var ${p.name} [][]int\n    _ = json.Unmarshal([]byte(getLine(lines, ${i}, "[]")), &${p.name})`;
+      return `    var ${p.name} []int\n    _ = json.Unmarshal([]byte(getLine(lines, ${i}, "[]")), &${p.name})`;
+    })
+    .join("\n");
+  const callArgs = params.map((p) => p.name).join(", ");
+  const returnLine = formatReturnGo(meta.return?.type || "any");
+
+  return `package main
+
+import (
+    "bufio"
+    "encoding/json"
+    "fmt"
+    "os"
+    "strconv"
+    "strings"
+)
+
+${userCode}
+
+func getLine(lines []string, idx int, fallback string) string {
+    if idx >= 0 && idx < len(lines) {
+        return lines[idx]
+    }
+    return fallback
+}
+
+func main() {
+    scanner := bufio.NewScanner(os.Stdin)
+    lines := []string{}
+    for scanner.Scan() {
+        lines = append(lines, scanner.Text())
+    }
+${parseLines}
+    result := ${meta.name}(${callArgs})
+    ${returnLine}
+}
+`;
+}
+
+function formatReturnRust(retType: string): string {
+  const kind = inputKindFromLcType(retType);
+  if (kind === "bool") return `println!("{}", if result { "true" } else { "false" });`;
+  if (kind === "matrix_int") return `println!("{}", to_matrix_json(&result));`;
+  if (kind === "array_int") return `println!("{}", to_vec_json(&result));`;
+  return `println!("{}", result);`;
+}
+
+export function generateRustWrapper(userCode: string, metaRaw: string): string {
+  const meta = parseMetaData(metaRaw);
+  if (!meta) return userCode;
+
+  const params = meta.params || [];
+  const parseLines = params
+    .map((p, i) => {
+      const kind = inputKindFromLcType(p.type);
+      if (kind === "int") return `    let ${p.name}: i32 = get_line(&lines, ${i}, "0").trim().parse().unwrap_or(0);`;
+      if (kind === "bool")
+        return `    let ${p.name}: bool = get_line(&lines, ${i}, "false").trim().eq_ignore_ascii_case("true");`;
+      if (kind === "string")
+        return `    let ${p.name}: String = trim_quotes(get_line(&lines, ${i}, ""));`;
+      if (kind === "matrix_int")
+        return `    let ${p.name}: Vec<Vec<i32>> = parse_matrix(get_line(&lines, ${i}, "[]"));`;
+      return `    let ${p.name}: Vec<i32> = parse_vec(get_line(&lines, ${i}, "[]"));`;
+    })
+    .join("\n");
+  const callArgs = params.map((p) => p.name).join(", ");
+  const returnLine = formatReturnRust(meta.return?.type || "any");
+
+  return `use std::io::{self, Read};
+
+${userCode}
+
+fn get_line(lines: &Vec<&str>, idx: usize, fallback: &'static str) -> &str {
+    if idx < lines.len() { lines[idx] } else { fallback }
+}
+
+fn trim_quotes(s: &str) -> String {
+    let t = s.trim();
+    if t.len() >= 2 && t.starts_with('"') && t.ends_with('"') {
+        return t[1..t.len() - 1].to_string();
+    }
+    t.to_string()
+}
+
+fn parse_vec(s: &str) -> Vec<i32> {
+    let t = s.trim().trim_start_matches('[').trim_end_matches(']');
+    if t.is_empty() {
+        return vec![];
+    }
+    t.split(',')
+        .map(|x| x.trim().parse::<i32>().unwrap_or(0))
+        .collect()
+}
+
+fn parse_matrix(s: &str) -> Vec<Vec<i32>> {
+    let chars: Vec<char> = s.chars().collect();
+    let mut out: Vec<Vec<i32>> = Vec::new();
+    let mut depth = 0usize;
+    let mut start = 0usize;
+    for (i, ch) in chars.iter().enumerate() {
+        if *ch == '[' {
+            if depth == 1 {
+                start = i;
+            }
+            depth += 1;
+        } else if *ch == ']' {
+            if depth > 0 {
+                depth -= 1;
+            }
+            if depth == 1 {
+                let row: String = chars[start..=i].iter().collect();
+                out.push(parse_vec(&row));
+            }
+        }
+    }
+    out
+}
+
+fn to_vec_json(v: &Vec<i32>) -> String {
+    let parts: Vec<String> = v.iter().map(|x| x.to_string()).collect();
+    format!("[{}]", parts.join(","))
+}
+
+fn to_matrix_json(v: &Vec<Vec<i32>>) -> String {
+    let parts: Vec<String> = v.iter().map(|row| to_vec_json(row)).collect();
+    format!("[{}]", parts.join(","))
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let lines: Vec<&str> = input.lines().collect();
+${parseLines}
+    let result = Solution::${meta.name}(${callArgs});
+    ${returnLine}
 }
 `;
 }
@@ -386,11 +494,16 @@ export function wrapCode(
       case "python":
         return generatePythonWrapper(code, metaRaw, examples);
       case "javascript":
-        return generateJSWrapper(code, metaRaw);
       case "typescript":
         return generateJSWrapper(code, metaRaw);
       case "cpp":
         return generateCppWrapper(code, metaRaw);
+      case "java":
+        return generateJavaWrapper(code, metaRaw);
+      case "golang":
+        return generateGoWrapper(code, metaRaw);
+      case "rust":
+        return generateRustWrapper(code, metaRaw);
       default:
         return code;
     }
