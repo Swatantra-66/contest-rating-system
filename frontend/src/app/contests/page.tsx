@@ -122,11 +122,7 @@ function formatDate(dateStr: string): string {
 }
 
 function ContestDate({ dateStr }: { dateStr?: string }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  if (!mounted || !dateStr) return <span className="text-zinc-700">—</span>;
+  if (!dateStr) return <span className="text-zinc-700">—</span>;
   return (
     <span className="font-mono text-[10px] text-zinc-500">
       {formatDate(dateStr)}
@@ -360,3 +356,4 @@ export default function ContestsPage() {
     </div>
   );
 }
+
