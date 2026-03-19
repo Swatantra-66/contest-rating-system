@@ -17,7 +17,7 @@ import (
 type HintRequest struct {
 	ProblemSlug  string `json:"problem_slug" binding:"required"`
 	ProblemTitle string `json:"problem_title"`
-	Content      string `json:"content" binding:"required"`
+	Content      string `json:"content"`
 	Examples     string `json:"examples"`
 	MetaData     string `json:"meta_data"`
 	Language     string `json:"language"`
@@ -74,6 +74,14 @@ func (h *Handler) GenerateHint(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid hint request"})
 		return
 	}
+	if strings.TrimSpace(req.ProblemSlug) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "problem_slug is required"})
+		return
+	}
+	if strings.TrimSpace(req.Content) == "" && strings.TrimSpace(req.ProblemTitle) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "problem content is missing"})
+		return
+	}
 
 	usageKey := buildHintUsageKey(req, c.ClientIP())
 	used := getHintUsage(usageKey)
@@ -89,8 +97,13 @@ func (h *Handler) GenerateHint(c *gin.Context) {
 
 	apiKey := strings.TrimSpace(os.Getenv("GEMINI_API_KEY"))
 	if apiKey == "" {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error": "hint service is not configured",
+		used = incrementHintUsage(usageKey)
+		c.JSON(http.StatusOK, gin.H{
+			"hint":            buildFallbackHint(req),
+			"source":          "fallback",
+			"hints_used":      used,
+			"hints_remaining": max(0, MaxHintsPerContest-used),
+			"hint_limit":      MaxHintsPerContest,
 		})
 		return
 	}
@@ -128,23 +141,41 @@ func (h *Handler) GenerateHint(c *gin.Context) {
 
 	resp, err := httpClient.Do(request)
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "hint provider unreachable"})
+		used = incrementHintUsage(usageKey)
+		c.JSON(http.StatusOK, gin.H{
+			"hint":            buildFallbackHint(req),
+			"source":          "fallback",
+			"hints_used":      used,
+			"hints_remaining": max(0, MaxHintsPerContest-used),
+			"hint_limit":      MaxHintsPerContest,
+		})
 		return
 	}
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode >= 400 {
-		c.JSON(http.StatusBadGateway, gin.H{
-			"error":   "hint provider error",
-			"details": strings.TrimSpace(string(respBody)),
+		used = incrementHintUsage(usageKey)
+		c.JSON(http.StatusOK, gin.H{
+			"hint":            buildFallbackHint(req),
+			"source":          "fallback",
+			"hints_used":      used,
+			"hints_remaining": max(0, MaxHintsPerContest-used),
+			"hint_limit":      MaxHintsPerContest,
 		})
 		return
 	}
 
 	var gemResp geminiResponse
 	if err := json.Unmarshal(respBody, &gemResp); err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "invalid hint provider response"})
+		used = incrementHintUsage(usageKey)
+		c.JSON(http.StatusOK, gin.H{
+			"hint":            buildFallbackHint(req),
+			"source":          "fallback",
+			"hints_used":      used,
+			"hints_remaining": max(0, MaxHintsPerContest-used),
+			"hint_limit":      MaxHintsPerContest,
+		})
 		return
 	}
 
@@ -161,7 +192,14 @@ func (h *Handler) GenerateHint(c *gin.Context) {
 	}
 	hint = strings.TrimSpace(hint)
 	if hint == "" {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "hint was empty"})
+		used = incrementHintUsage(usageKey)
+		c.JSON(http.StatusOK, gin.H{
+			"hint":            buildFallbackHint(req),
+			"source":          "fallback",
+			"hints_used":      used,
+			"hints_remaining": max(0, MaxHintsPerContest-used),
+			"hint_limit":      MaxHintsPerContest,
+		})
 		return
 	}
 
@@ -222,8 +260,9 @@ func (h *Handler) GenerateAnalysis(c *gin.Context) {
 
 	apiKey := strings.TrimSpace(os.Getenv("GEMINI_API_KEY"))
 	if apiKey == "" {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error": "analysis service is not configured",
+		c.JSON(http.StatusOK, gin.H{
+			"analysis": buildFallbackAnalysis(req),
+			"source":   "fallback",
 		})
 		return
 	}
@@ -260,23 +299,29 @@ func (h *Handler) GenerateAnalysis(c *gin.Context) {
 
 	resp, err := httpClient.Do(request)
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "analysis provider unreachable"})
+		c.JSON(http.StatusOK, gin.H{
+			"analysis": buildFallbackAnalysis(req),
+			"source":   "fallback",
+		})
 		return
 	}
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode >= 400 {
-		c.JSON(http.StatusBadGateway, gin.H{
-			"error":   "analysis provider error",
-			"details": strings.TrimSpace(string(respBody)),
+		c.JSON(http.StatusOK, gin.H{
+			"analysis": buildFallbackAnalysis(req),
+			"source":   "fallback",
 		})
 		return
 	}
 
 	var gemResp geminiResponse
 	if err := json.Unmarshal(respBody, &gemResp); err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "invalid analysis provider response"})
+		c.JSON(http.StatusOK, gin.H{
+			"analysis": buildFallbackAnalysis(req),
+			"source":   "fallback",
+		})
 		return
 	}
 
@@ -293,7 +338,10 @@ func (h *Handler) GenerateAnalysis(c *gin.Context) {
 	}
 	analysis = strings.TrimSpace(analysis)
 	if analysis == "" {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "analysis was empty"})
+		c.JSON(http.StatusOK, gin.H{
+			"analysis": buildFallbackAnalysis(req),
+			"source":   "fallback",
+		})
 		return
 	}
 
@@ -436,4 +484,45 @@ Meta data:
 User code:
 %s
 `, result, req.ProblemSlug, req.ProblemTitle, req.Language, req.Content, req.Examples, req.MetaData, codeSnippet)
+}
+
+func buildFallbackHint(req HintRequest) string {
+	title := strings.TrimSpace(req.ProblemTitle)
+	if title == "" {
+		title = req.ProblemSlug
+	}
+	return fmt.Sprintf(`Hint for %s:
+- Start with a brute-force approach first, then identify repeated work to optimize.
+- Write down 2-3 edge cases (empty/single element/max constraints) before coding.
+- Match your final complexity to the expected difficulty and test with small custom inputs.`, title)
+}
+
+func buildFallbackAnalysis(req AnalysisRequest) string {
+	result := strings.TrimSpace(req.Result)
+	if result == "" {
+		result = "unknown"
+	}
+	return fmt.Sprintf(`Core Idea
+- Break the problem into clear input -> transform -> output stages.
+- Focus on reducing repeated computation with the right data structure.
+
+Step-by-Step Approach
+1. Clarify constraints and edge cases.
+2. Build a correct baseline solution.
+3. Optimize hot loops/data access.
+4. Re-test boundary cases and invalid assumptions.
+
+Complexity
+- Time: depends on chosen structure, target near O(n) or O(n log n) for most medium tasks.
+- Space: keep auxiliary memory minimal and predictable.
+
+Common Pitfalls
+- Off-by-one errors and incorrect boundary handling.
+- Not validating empty input and single-item cases.
+- Using an approach that is too slow for constraints.
+
+How to Improve This Submission
+- Result seen: %s
+- Add targeted tests for edge cases.
+- Refactor into smaller helper functions for clarity and fewer bugs.`, result)
 }

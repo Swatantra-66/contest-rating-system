@@ -427,13 +427,39 @@ function DuelRoomInner() {
             },
           );
         }
-        if (!snippetMap["python3"] && data.starter_code) {
-          snippetMap["python3"] = data.starter_code;
+        const fallbackSupported = Object.keys(DEFAULT_SNIPPETS).filter((slug) =>
+          isWrapperSupported(toWrapperLanguage(slug)),
+        );
+        if (!snippetMap["java"] && data.starter_code) {
+          snippetMap["java"] = data.starter_code;
+        }
+        fallbackSupported.forEach((slug) => {
+          if (!snippetMap[slug]) {
+            snippetMap[slug] = DEFAULT_SNIPPETS[slug];
+          }
+        });
+        // Heal older bad drafts where java starter leaked into python slot.
+        if (
+          snippetMap["python3"] &&
+          snippetMap["python3"].includes("class Solution") &&
+          snippetMap["python3"].includes("public")
+        ) {
+          snippetMap["python3"] = DEFAULT_SNIPPETS["python3"];
         }
         snippetsRef.current = snippetMap;
 
-        const languageOptions = Object.keys(snippetMap).filter((slug) =>
-          isWrapperSupported(toWrapperLanguage(slug)),
+        const preferredLanguageOrder = [
+          "java",
+          "cpp",
+          "python3",
+          "javascript",
+          "typescript",
+          "golang",
+          "rust",
+        ];
+        const languageOptions = preferredLanguageOrder.filter(
+          (slug) =>
+            !!snippetMap[slug] && isWrapperSupported(toWrapperLanguage(slug)),
         );
         if (languageOptions.length > 0) {
           setAvailableLanguages(languageOptions);
