@@ -423,7 +423,14 @@ function DuelRoomInner() {
           ? `${API_BASE}problems/random?difficulty=${diff.toLowerCase()}&contest_id=${contestId}&mode=${mode}`
           : `${API_BASE}problems/random?difficulty=${diff.toLowerCase()}&mode=${mode}`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+          let detail = "";
+          try {
+            const errJson = await res.json();
+            detail = errJson?.error || errJson?.details || "";
+          } catch {}
+          throw new Error(detail || `problem fetch failed (${res.status})`);
+        }
         const data = await res.json();
 
         const snippetMap: Record<string, string> = {};
@@ -518,8 +525,12 @@ function DuelRoomInner() {
           .split("\n")
           .filter((l: string) => l.trim());
         setTestResults(Array(Math.min(exLines.length, 3)).fill("pending"));
-      } catch {
-        setErrorMsg("Could not load problem. Check backend connection.");
+      } catch (err) {
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : "Could not load problem. Check backend connection.";
+        setErrorMsg(message);
       } finally {
         setFetchingProblem(false);
       }

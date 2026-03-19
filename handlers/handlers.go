@@ -664,6 +664,10 @@ func fetchRandomProblem(difficulty string) (*ProblemResponse, error) {
 			questions = append(questions, q)
 		}
 	}
+	// Fallback: if API doesn't expose paidOnly reliably, don't fail the whole flow.
+	if len(questions) == 0 {
+		questions = rawQuestions
+	}
 	if len(questions) == 0 {
 		return nil, fmt.Errorf("no problems found for difficulty: %s", difficulty)
 	}
