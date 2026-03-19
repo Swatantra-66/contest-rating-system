@@ -65,6 +65,9 @@ func main() {
 
 	//h := handlers.New(db)
 	h := handlers.NewWithHub(db, hub)
+	if err := h.EnsureRuntimeSchema(); err != nil {
+		log.Fatalf("failed to initialize runtime schema: %v", err)
+	}
 
 	api := r.Group("/api")
 	{
@@ -75,13 +78,24 @@ func main() {
 		api.GET("/stats", h.GetStats)
 		api.GET("/contests", h.GetContests)
 		api.GET("/contests/:id", h.GetContest)
+		api.GET("/contests/:id/config", h.GetContestConfig)
+		api.GET("/team-contests/:id", h.GetTeamContest)
+		api.GET("/team-contests/:id/scoreboard", h.GetTeamContestScoreboard)
 		api.GET("/history", h.GetGlobalHistory)
 		api.GET("/problems/random", h.GetRandomProblem)
 		api.GET("/ws", h.ServeWS(hub))
 
 		api.POST("/contests/:id/finalize", h.FinalizeContest)
+		api.POST("/contests/:id/config", h.SetContestConfig)
 		api.POST("/contests", h.CreateContest)
+		api.POST("/team-contests", h.CreateTeamContest)
+		api.POST("/team-contests/:id/submissions", h.SubmitTeamContest)
+		api.POST("/team-contests/:id/finalize", h.FinalizeTeamContest)
 		api.POST("/users", h.CreateUser)
+		api.POST("/submit-judge", handlers.SubmitCodeHandler(db))
+		api.POST("/hints", h.GenerateHint)
+		api.POST("/analysis", h.GenerateAnalysis)
+		api.GET("/hints/health", h.HintHealth)
 
 		api.DELETE("/contests/:id", RequireAdminAuth(), h.DeleteContest)
 	}
