@@ -22,6 +22,7 @@ type lcProblemListResponse struct {
 				TitleSlug  string `json:"titleSlug"`
 				Title      string `json:"title"`
 				Difficulty string `json:"difficulty"`
+				PaidOnly   bool   `json:"paidOnly"`
 			} `json:"questions"`
 		} `json:"problemsetQuestionList"`
 	} `json:"data"`

@@ -628,6 +628,7 @@ func fetchRandomProblem(difficulty string) (*ProblemResponse, error) {
 					titleSlug
 					title
 					difficulty
+					paidOnly
 				}
 			}
 		}`,
@@ -651,7 +652,18 @@ func fetchRandomProblem(difficulty string) (*ProblemResponse, error) {
 		return nil, err
 	}
 
-	questions := listResp.Data.ProblemsetQuestionList.Questions
+	rawQuestions := listResp.Data.ProblemsetQuestionList.Questions
+	questions := make([]struct {
+		TitleSlug  string `json:"titleSlug"`
+		Title      string `json:"title"`
+		Difficulty string `json:"difficulty"`
+		PaidOnly   bool   `json:"paidOnly"`
+	}, 0, len(rawQuestions))
+	for _, q := range rawQuestions {
+		if !q.PaidOnly {
+			questions = append(questions, q)
+		}
+	}
 	if len(questions) == 0 {
 		return nil, fmt.Errorf("no problems found for difficulty: %s", difficulty)
 	}
