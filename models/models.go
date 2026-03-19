@@ -69,3 +69,16 @@ type RatingHistory struct {
 	User    *User    `gorm:"foreignKey:UserID" json:"-"`
 	Contest *Contest `gorm:"foreignKey:ContestID" json:"-"`
 }
+
+type ContestConfig struct {
+	ContestID  string    `gorm:"primaryKey;type:uuid" json:"contest_id"`
+	Difficulty string    `gorm:"type:text;not null" json:"difficulty"`
+	Mode       string    `gorm:"type:text;not null" json:"mode"`
+	TimerSecs  int       `gorm:"not null" json:"timer_secs"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+func (ContestConfig) TableName() string {
+	return "contest_configs"
+}
