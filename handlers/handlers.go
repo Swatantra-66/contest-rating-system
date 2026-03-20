@@ -34,6 +34,16 @@ func NewWithHub(db *gorm.DB, hub *WSHub) *Handler {
 
 func (h *Handler) EnsureRuntimeSchema() error {
 	sql := `
+CREATE TABLE IF NOT EXISTS problems (
+    slug TEXT PRIMARY KEY,
+    title TEXT,
+    difficulty TEXT CHECK (difficulty IN ('Easy', 'Medium', 'Hard')),
+    source TEXT NOT NULL DEFAULT 'leetcode',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_problems_difficulty ON problems (difficulty);
+
 CREATE TABLE IF NOT EXISTS contest_configs (
     contest_id UUID PRIMARY KEY REFERENCES contests (id) ON DELETE CASCADE,
     difficulty TEXT NOT NULL CHECK (difficulty IN ('Easy', 'Medium', 'Hard')),
@@ -45,6 +55,64 @@ CREATE TABLE IF NOT EXISTS contest_configs (
 );
 ALTER TABLE contest_configs ADD COLUMN IF NOT EXISTS problem_slug TEXT;
 CREATE INDEX IF NOT EXISTS idx_contest_configs_contest_id ON contest_configs (contest_id);
+
+-- Normalize current slugs before wiring constraints.
+UPDATE test_cases SET problem_slug = TRIM(problem_slug) WHERE problem_slug <> TRIM(problem_slug);
+
+-- Backfill parent problem records from existing test cases.
+INSERT INTO problems (slug, source)
+SELECT DISTINCT TRIM(problem_slug), 'leetcode'
+FROM test_cases
+WHERE TRIM(problem_slug) <> ''
+ON CONFLICT (slug) DO NOTHING;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'fk_test_cases_problem_slug'
+    ) THEN
+        ALTER TABLE test_cases
+            ADD CONSTRAINT fk_test_cases_problem_slug
+            FOREIGN KEY (problem_slug)
+            REFERENCES problems (slug)
+            ON UPDATE CASCADE
+            ON DELETE RESTRICT
+            NOT VALID;
+    END IF;
+END $$;
+
+CREATE OR REPLACE FUNCTION ensure_problem_for_test_case()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.problem_slug := TRIM(NEW.problem_slug);
+    IF NEW.problem_slug IS NULL OR NEW.problem_slug = '' THEN
+        RAISE EXCEPTION 'problem_slug cannot be empty';
+    END IF;
+
+    INSERT INTO problems (slug, source)
+    VALUES (NEW.problem_slug, 'leetcode')
+    ON CONFLICT (slug) DO NOTHING;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_trigger
+        WHERE tgname = 'trg_test_cases_ensure_problem'
+    ) THEN
+        CREATE TRIGGER trg_test_cases_ensure_problem
+        BEFORE INSERT OR UPDATE OF problem_slug
+        ON test_cases
+        FOR EACH ROW
+        EXECUTE FUNCTION ensure_problem_for_test_case();
+    END IF;
+END $$;
 `
 	return h.db.Exec(sql).Error
 }
@@ -662,6 +730,45 @@ func fetchRandomProblem(difficulty string) (*ProblemResponse, error) {
 	return fetchProblemBySlug(picked.TitleSlug)
 }
 
+func (h *Handler) fetchRandomProblemBackedByDatabase(difficulty string) (*ProblemResponse, error) {
+	var slugs []string
+	err := h.db.
+		Table("test_cases").
+		Select("problem_slug").
+		Where("TRIM(problem_slug) <> ''").
+		Group("problem_slug").
+		Having("SUM(CASE WHEN is_hidden THEN 1 ELSE 0 END) > 0").
+		Order("RANDOM()").
+		Limit(100).
+		Pluck("problem_slug", &slugs).Error
+	if err != nil {
+		return nil, err
+	}
+	if len(slugs) == 0 {
+		return nil, fmt.Errorf("no database-backed problems found")
+	}
+
+	targetDifficulty := strings.ToLower(strings.TrimSpace(difficulty))
+	var fallback *ProblemResponse
+	for _, slug := range slugs {
+		problem, fetchErr := fetchProblemBySlug(strings.TrimSpace(slug))
+		if fetchErr != nil {
+			continue
+		}
+		if fallback == nil {
+			fallback = problem
+		}
+		if strings.ToLower(strings.TrimSpace(problem.Difficulty)) == targetDifficulty {
+			return problem, nil
+		}
+	}
+	if fallback != nil {
+		return fallback, nil
+	}
+
+	return nil, fmt.Errorf("no fetchable problems found for database-backed slugs")
+}
+
 func fetchProblemBySlug(titleSlug string) (*ProblemResponse, error) {
 	detailPayload := lcGraphQLRequest{
 		Query: `
@@ -780,10 +887,13 @@ func (h *Handler) GetRandomProblem(c *gin.Context) {
 		}
 	}
 
-	problem, err := fetchRandomProblem(difficulty)
+	problem, err := h.fetchRandomProblemBackedByDatabase(difficulty)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		problem, err = fetchRandomProblem(difficulty)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	if contestID != "" && mode == "same" {
