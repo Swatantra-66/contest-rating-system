@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { Orbitron } from "next/font/google";
 import Link from "next/link";
-import UnicornScene from "unicornstudio-react";
 import { useGlobalWS } from "@/components/WebSocketProvider";
 
 const orbitron = Orbitron({ subsets: ["latin"], weight: ["700", "900"] });
@@ -220,9 +219,9 @@ export default function ArenaPage() {
   if (!isLoaded || loading)
     return (
       <div
+        className="bg-zinc-950"
         style={{
           minHeight: "100vh",
-          background: "#05060b",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -255,10 +254,9 @@ export default function ArenaPage() {
 
   return (
     <div
+      className="bg-zinc-950"
       style={{
         minHeight: "100vh",
-        background:
-          "radial-gradient(1200px 600px at 10% -10%, rgba(37,99,235,0.18), transparent 65%), radial-gradient(900px 500px at 100% 0%, rgba(99,102,241,0.14), transparent 60%), #04050a",
         fontFamily: "ui-monospace,monospace",
         color: "#e4e4e7",
         position: "relative",
@@ -267,28 +265,6 @@ export default function ArenaPage() {
         justifyContent: "center",
       }}
     >
-      <style>{`[class*="unicorn-watermark"],[class*="watermark"],[id*="watermark"],a[href*="unicorn"]{display:none!important;opacity:0!important;visibility:hidden!important;}`}</style>
-      <div
-        style={{
-          position: "fixed",
-          top: "50%",
-          left: "calc(50% + 128px)",
-          transform: "translate(-50%, -50%)",
-          zIndex: 0,
-          pointerEvents: "none",
-          width: "1440px",
-          height: "900px",
-        }}
-      >
-        <UnicornScene
-          projectId="l00SNXxDg8mg4HVu5KDY"
-          width="1440px"
-          height="900px"
-          scale={1}
-          dpi={1.5}
-          sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@2.1.4/dist/unicornStudio.umd.js"
-        />
-      </div>
       <style>{`
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
         @keyframes cardIn{from{opacity:0;transform:translateY(24px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
