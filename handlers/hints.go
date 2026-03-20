@@ -110,7 +110,7 @@ func (h *Handler) GenerateHint(c *gin.Context) {
 
 	model := strings.TrimSpace(os.Getenv("GEMINI_MODEL"))
 	if model == "" {
-		model = "gemini-2.5-flash"
+		model = "gemini-1.5-flash"
 	}
 
 	prompt := buildHintPrompt(req)
@@ -132,15 +132,15 @@ func (h *Handler) GenerateHint(c *gin.Context) {
 	}
 
 	body, _ := json.Marshal(payload)
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", model)
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, apiKey)
 
 	httpClient := &http.Client{Timeout: 25 * time.Second}
 	request, _ := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("x-goog-api-key", apiKey)
 
 	resp, err := httpClient.Do(request)
 	if err != nil {
+		fmt.Println("GEMINI HTTP REQUEST ERROR:", err)
 		used = incrementHintUsage(usageKey)
 		c.JSON(http.StatusOK, gin.H{
 			"hint":            buildFallbackHint(req),
@@ -155,6 +155,7 @@ func (h *Handler) GenerateHint(c *gin.Context) {
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode >= 400 {
+		fmt.Printf("GEMINI API ERROR (Status %d): %s\n", resp.StatusCode, string(respBody)) // Added Logging
 		used = incrementHintUsage(usageKey)
 		c.JSON(http.StatusOK, gin.H{
 			"hint":            buildFallbackHint(req),
@@ -168,6 +169,7 @@ func (h *Handler) GenerateHint(c *gin.Context) {
 
 	var gemResp geminiResponse
 	if err := json.Unmarshal(respBody, &gemResp); err != nil {
+		fmt.Println("GEMINI JSON UNMARSHAL ERROR:", err)
 		used = incrementHintUsage(usageKey)
 		c.JSON(http.StatusOK, gin.H{
 			"hint":            buildFallbackHint(req),
@@ -192,6 +194,7 @@ func (h *Handler) GenerateHint(c *gin.Context) {
 	}
 	hint = strings.TrimSpace(hint)
 	if hint == "" {
+		fmt.Println("GEMINI RETURNED EMPTY HINT")
 		used = incrementHintUsage(usageKey)
 		c.JSON(http.StatusOK, gin.H{
 			"hint":            buildFallbackHint(req),
@@ -207,6 +210,7 @@ func (h *Handler) GenerateHint(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"hint":            hint,
+		"source":          "gemini",
 		"hints_used":      used,
 		"hints_remaining": max(0, MaxHintsPerContest-used),
 		"hint_limit":      MaxHintsPerContest,
@@ -217,7 +221,7 @@ func (h *Handler) HintHealth(c *gin.Context) {
 	apiKey := strings.TrimSpace(os.Getenv("GEMINI_API_KEY"))
 	model := strings.TrimSpace(os.Getenv("GEMINI_MODEL"))
 	if model == "" {
-		model = "gemini-2.5-flash"
+		model = "gemini-1.5-flash"
 	}
 
 	if apiKey == "" {
@@ -229,7 +233,6 @@ func (h *Handler) HintHealth(c *gin.Context) {
 		return
 	}
 
-	// Optional live ping: /api/hints/health?live=1
 	if c.Query("live") == "1" {
 		ok, detail := pingGemini(apiKey, model)
 		if !ok {
@@ -269,7 +272,7 @@ func (h *Handler) GenerateAnalysis(c *gin.Context) {
 
 	model := strings.TrimSpace(os.Getenv("GEMINI_MODEL"))
 	if model == "" {
-		model = "gemini-2.5-flash"
+		model = "gemini-1.5-flash"
 	}
 
 	prompt := buildAnalysisPrompt(req)
@@ -291,14 +294,14 @@ func (h *Handler) GenerateAnalysis(c *gin.Context) {
 	}
 
 	body, _ := json.Marshal(payload)
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", model)
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, apiKey)
 	httpClient := &http.Client{Timeout: 30 * time.Second}
 	request, _ := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("x-goog-api-key", apiKey)
 
 	resp, err := httpClient.Do(request)
 	if err != nil {
+		fmt.Println("GEMINI ANALYSIS HTTP ERROR:", err)
 		c.JSON(http.StatusOK, gin.H{
 			"analysis": buildFallbackAnalysis(req),
 			"source":   "fallback",
@@ -309,6 +312,7 @@ func (h *Handler) GenerateAnalysis(c *gin.Context) {
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode >= 400 {
+		fmt.Printf("GEMINI ANALYSIS API ERROR (Status %d): %s\n", resp.StatusCode, string(respBody)) // Added Logging
 		c.JSON(http.StatusOK, gin.H{
 			"analysis": buildFallbackAnalysis(req),
 			"source":   "fallback",
@@ -318,6 +322,7 @@ func (h *Handler) GenerateAnalysis(c *gin.Context) {
 
 	var gemResp geminiResponse
 	if err := json.Unmarshal(respBody, &gemResp); err != nil {
+		fmt.Println("GEMINI ANALYSIS JSON UNMARSHAL ERROR:", err)
 		c.JSON(http.StatusOK, gin.H{
 			"analysis": buildFallbackAnalysis(req),
 			"source":   "fallback",
@@ -338,6 +343,7 @@ func (h *Handler) GenerateAnalysis(c *gin.Context) {
 	}
 	analysis = strings.TrimSpace(analysis)
 	if analysis == "" {
+		fmt.Println("GEMINI RETURNED EMPTY ANALYSIS")
 		c.JSON(http.StatusOK, gin.H{
 			"analysis": buildFallbackAnalysis(req),
 			"source":   "fallback",
@@ -347,6 +353,7 @@ func (h *Handler) GenerateAnalysis(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"analysis": analysis,
+		"source":   "gemini",
 	})
 }
 
@@ -367,10 +374,9 @@ func pingGemini(apiKey, model string) (bool, string) {
 	}
 
 	body, _ := json.Marshal(payload)
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", model)
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, apiKey)
 	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-goog-api-key", apiKey)
 
 	client := &http.Client{Timeout: 12 * time.Second}
 	resp, err := client.Do(req)
