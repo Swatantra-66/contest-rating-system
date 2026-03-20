@@ -117,19 +117,18 @@ func SubmitCodeHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		query := db.Where("problem_slug = ?", req.ProblemSlug)
-		if action == "run" {
-			query = query.Where("is_hidden = ?", false)
-		}
-
-		var testCases []TestCase
-		if err := query.Find(&testCases).Error; err != nil {
+		testCases, err := fetchTestCasesForProblem(db, req.ProblemSlug, action)
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch test cases"})
 			return
 		}
 
 		if len(testCases) == 0 {
-			c.JSON(http.StatusNotFound, gin.H{"error": "No test cases found in database"})
+			c.JSON(http.StatusNotFound, gin.H{
+				"error":        "No test cases found in database for this problem",
+				"problem_slug": strings.TrimSpace(req.ProblemSlug),
+				"action":       action,
+			})
 			return
 		}
 
@@ -244,6 +243,27 @@ func SubmitCodeHandler(db *gorm.DB) gin.HandlerFunc {
 			"summary":      buildJudgeSummary(results, timeMsTotal, timeMsMax, memoryTotal, memoryMax),
 		})
 	}
+}
+
+func fetchTestCasesForProblem(db *gorm.DB, rawProblemSlug, action string) ([]TestCase, error) {
+	normalized := normalizeProblemSlug(rawProblemSlug)
+	query := db.Where("LOWER(REPLACE(TRIM(problem_slug), '_', '-')) = ?", normalized)
+	if action == "run" {
+		query = query.Where("is_hidden = ?", false)
+	}
+
+	var testCases []TestCase
+	if err := query.Find(&testCases).Error; err != nil {
+		return nil, err
+	}
+	return testCases, nil
+}
+
+func normalizeProblemSlug(raw string) string {
+	slug := strings.ToLower(strings.TrimSpace(raw))
+	slug = strings.ReplaceAll(slug, "_", "-")
+	slug = strings.Join(strings.Fields(slug), "-")
+	return slug
 }
 
 func outputsMatch(actual, expected string) bool {
