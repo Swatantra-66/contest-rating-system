@@ -18,6 +18,7 @@ import {
   Code2,
   AlertTriangle,
   Lock,
+  Loader2,
 } from "lucide-react";
 
 const orbitron = Orbitron({ subsets: ["latin"], weight: ["700", "900"] });
