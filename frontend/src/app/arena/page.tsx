@@ -219,16 +219,8 @@ export default function ArenaPage() {
   if (!isLoaded || loading)
     return (
       <div
-        className="bg-zinc-950"
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 16,
-          fontFamily: "ui-monospace,monospace",
-        }}
+        className="min-h-screen w-full flex flex-col items-center justify-center gap-4 relative"
+        style={{ fontFamily: "ui-monospace,monospace" }}
       >
         <Loader2
           style={{
@@ -242,7 +234,7 @@ export default function ArenaPage() {
           style={{
             fontSize: 10,
             letterSpacing: "0.3em",
-            color: "#3f3f46",
+            color: "#818cf8",
             textTransform: "uppercase",
           }}
         >
@@ -254,15 +246,10 @@ export default function ArenaPage() {
 
   return (
     <div
-      className="bg-zinc-950"
+      className="min-h-screen relative w-full flex justify-center items-start pt-8 pb-24 px-6"
       style={{
-        minHeight: "100vh",
         fontFamily: "ui-monospace,monospace",
         color: "#e4e4e7",
-        position: "relative",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
       }}
     >
       <style>{`
@@ -271,7 +258,6 @@ export default function ArenaPage() {
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
         .node-card{transition:all 0.25s ease}
-        .node-card:hover{transform:translateY(-4px)}
         .challenge-btn{transition:all 0.2s ease}
       `}</style>
 
@@ -410,13 +396,14 @@ export default function ArenaPage() {
         style={{
           maxWidth: 1240,
           width: "100%",
-          margin: "0 auto",
-          padding: "22px 24px 36px",
           position: "relative",
           zIndex: 1,
+          display: "flex",
+          flexDirection: "column",
+          gap: 24,
         }}
       >
-        <div style={{ marginBottom: 18 }}>
+        <div style={{ marginBottom: -8 }}>
           <Link
             href="/"
             style={{
@@ -436,6 +423,7 @@ export default function ArenaPage() {
             <ArrowLeft size={12} /> Return to Hub
           </Link>
         </div>
+
         <div
           style={{
             background:
@@ -443,6 +431,7 @@ export default function ArenaPage() {
             border: "1px solid rgba(99,102,241,0.22)",
             borderRadius: 24,
             backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
             overflow: "hidden",
             boxShadow:
               "0 20px 70px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04)",
@@ -706,7 +695,6 @@ export default function ArenaPage() {
           <div
             style={{
               padding: "12px 28px 14px",
-              borderBottom: "1px solid rgba(255,255,255,0.08)",
               display: "flex",
               gap: 12,
               flexWrap: "wrap",
@@ -761,325 +749,354 @@ export default function ArenaPage() {
               </div>
             ))}
           </div>
+        </div>
 
-          <div style={{ padding: "20px 28px" }}>
-            {opponents.length === 0 ? (
-              <div
+        <div style={{ width: "100%" }}>
+          {opponents.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "60px 0",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 12,
+                background: "rgba(0,0,0,0.4)",
+                backdropFilter: "blur(10px)",
+                borderRadius: 24,
+                border: "1px dashed rgba(255,255,255,0.08)",
+              }}
+            >
+              <ShieldAlert size={32} style={{ color: "#27272a" }} />
+              <p
                 style={{
-                  textAlign: "center",
-                  padding: "60px 0",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 12,
+                  fontSize: 11,
+                  color: "#52525b",
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
                 }}
               >
-                <ShieldAlert size={32} style={{ color: "#27272a" }} />
-                <p
-                  style={{
-                    fontSize: 11,
-                    color: "#3f3f46",
-                    letterSpacing: "0.2em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  No nodes found
-                </p>
-              </div>
-            ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-                  gap: 18,
-                }}
-              >
-                {opponents.map((opponent, i) => {
-                  const tier = getTier(opponent.tier);
-                  const isOnline = onlineIds.has(opponent.id);
-                  const isChallenging = challenging === opponent.id;
-                  return (
+                No active nodes found on this sector
+              </p>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+                gap: 24,
+                justifyItems: "center",
+              }}
+            >
+              {opponents.map((opponent, i) => {
+                const tier = getTier(opponent.tier);
+                const isOnline = onlineIds.has(opponent.id);
+                const isChallenging = challenging === opponent.id;
+
+                return (
+                  <div
+                    key={opponent.id}
+                    className="node-card"
+                    style={{
+                      background: "#09090b",
+                      backgroundImage:
+                        "linear-gradient(180deg, #18181b 0%, #09090b 100%)",
+                      border: `1px solid ${isOnline ? "rgba(74,222,128,0.25)" : "rgba(255,255,255,0.08)"}`,
+                      borderRadius: 16,
+                      width: "100%",
+                      maxWidth: 300,
+                      display: "flex",
+                      flexDirection: "column",
+                      animation: `cardIn 0.4s ease-out ${i * 0.06}s both`,
+                      position: "relative",
+                      overflow: "hidden",
+                      boxShadow: isOnline
+                        ? "0 8px 30px rgba(74,222,128,0.05)"
+                        : "0 8px 30px rgba(0,0,0,0.5)",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.borderColor =
+                        isOnline ? "rgba(74,222,128,0.5)" : `${tier.color}60`;
+                      (e.currentTarget as HTMLDivElement).style.transform =
+                        "translateY(-6px)";
+                      (e.currentTarget as HTMLDivElement).style.boxShadow =
+                        `0 20px 40px ${tier.glow}`;
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.borderColor =
+                        isOnline
+                          ? "rgba(74,222,128,0.25)"
+                          : "rgba(255,255,255,0.08)";
+                      (e.currentTarget as HTMLDivElement).style.transform =
+                        "translateY(0)";
+                      (e.currentTarget as HTMLDivElement).style.boxShadow =
+                        isOnline
+                          ? "0 8px 30px rgba(74,222,128,0.05)"
+                          : "0 8px 30px rgba(0,0,0,0.5)";
+                    }}
+                  >
                     <div
-                      key={opponent.id}
-                      className="node-card"
                       style={{
-                        background:
-                          "linear-gradient(165deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015))",
-                        border: `1px solid ${isOnline ? "rgba(74,222,128,0.15)" : "rgba(255,255,255,0.06)"}`,
-                        borderRadius: 16,
-                        padding: 20,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 16,
-                        animation: `cardIn 0.4s ease-out ${i * 0.06}s both`,
+                        height: 160,
+                        width: "100%",
                         position: "relative",
-                        overflow: "hidden",
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLDivElement).style.borderColor =
-                          isOnline ? "rgba(74,222,128,0.3)" : `${tier.color}40`;
-                        (e.currentTarget as HTMLDivElement).style.boxShadow =
-                          `0 12px 36px ${tier.glow}`;
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLDivElement).style.borderColor =
-                          isOnline
-                            ? "rgba(74,222,128,0.15)"
-                            : "rgba(255,255,255,0.06)";
-                        (e.currentTarget as HTMLDivElement).style.boxShadow =
-                          "none";
+                        background: tier.bg,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderBottom: `1px solid ${tier.color}30`,
                       }}
                     >
+                      {opponent.image_url ? (
+                        <Image
+                          src={opponent.image_url}
+                          alt={opponent.name}
+                          fill
+                          unoptimized
+                          style={{
+                            objectFit: "cover",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            fontSize: 54,
+                            fontWeight: 900,
+                            color: tier.color,
+                            opacity: 0.8,
+                          }}
+                        >
+                          {opponent.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+
                       <div
                         style={{
                           position: "absolute",
-                          top: 0,
-                          right: 0,
-                          width: 60,
-                          height: 60,
-                          background: `radial-gradient(circle at top right, ${tier.color}10, transparent 70%)`,
-                          pointerEvents: "none",
+                          inset: 0,
+                          background:
+                            "linear-gradient(to bottom, transparent 50%, #18181b 100%)",
                         }}
                       />
 
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                        }}
-                      >
+                      {isOnline && (
                         <div
                           style={{
-                            display: "flex",
+                            position: "absolute",
+                            top: 12,
+                            right: 12,
+                            display: "inline-flex",
                             alignItems: "center",
-                            gap: 12,
+                            gap: 5,
+                            padding: "4px 10px",
+                            borderRadius: 6,
+                            background: "rgba(0,0,0,0.6)",
+                            backdropFilter: "blur(4px)",
+                            border: "1px solid rgba(74,222,128,0.3)",
                           }}
                         >
                           <div
                             style={{
-                              width: 44,
-                              height: 44,
-                              borderRadius: 12,
-                              overflow: "hidden",
-                              border: `1.5px solid ${tier.color}40`,
-                              background: tier.bg,
-                              flexShrink: 0,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: 14,
-                              fontWeight: 900,
-                              color: tier.color,
+                              width: 6,
+                              height: 6,
+                              borderRadius: "50%",
+                              background: "#4ade80",
+                              animation: "pulse 2s ease infinite",
                             }}
-                          >
-                            {opponent.image_url ? (
-                              <Image
-                                src={opponent.image_url}
-                                alt={opponent.name}
-                                width={44}
-                                height={44}
-                                unoptimized
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  objectFit: "cover",
-                                }}
-                              />
-                            ) : (
-                              opponent.name.slice(0, 2).toUpperCase()
-                            )}
-                          </div>
-                          <div>
-                            <div
-                              style={{
-                                fontSize: 13,
-                                fontWeight: 700,
-                                letterSpacing: "0.08em",
-                                color: "#fff",
-                                textTransform: "uppercase",
-                              }}
-                            >
-                              {opponent.name}
-                            </div>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 6,
-                                marginTop: 3,
-                              }}
-                            >
-                              <div
-                                style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 4,
-                                  padding: "2px 8px",
-                                  borderRadius: 4,
-                                  background: tier.bg,
-                                  border: `1px solid ${tier.color}30`,
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    fontSize: 8,
-                                    fontWeight: 900,
-                                    letterSpacing: "0.15em",
-                                    color: tier.color,
-                                    textTransform: "uppercase",
-                                  }}
-                                >
-                                  {opponent.tier}
-                                </span>
-                              </div>
-                              {isOnline && (
-                                <div
-                                  style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 4,
-                                    padding: "2px 8px",
-                                    borderRadius: 4,
-                                    background: "rgba(74,222,128,0.1)",
-                                    border: "1px solid rgba(74,222,128,0.2)",
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      width: 4,
-                                      height: 4,
-                                      borderRadius: "50%",
-                                      background: "#4ade80",
-                                      animation: "pulse 2s ease infinite",
-                                    }}
-                                  />
-                                  <span
-                                    style={{
-                                      fontSize: 8,
-                                      color: "#4ade80",
-                                      letterSpacing: "0.15em",
-                                      textTransform: "uppercase",
-                                    }}
-                                  >
-                                    Online
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <div
-                            className={orbitron.className}
-                            style={{
-                              fontSize: 24,
-                              fontWeight: 900,
-                              color: "#fff",
-                              lineHeight: 1,
-                            }}
-                          >
-                            {opponent.current_rating}
-                          </div>
-                          <div
+                          />
+                          <span
                             style={{
                               fontSize: 9,
-                              color: "#3f3f46",
+                              color: "#4ade80",
+                              letterSpacing: "0.15em",
+                              textTransform: "uppercase",
+                              fontWeight: 700,
+                            }}
+                          >
+                            Online
+                          </span>
+                        </div>
+                      )}
+
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: 12,
+                          left: 16,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          padding: "4px 10px",
+                          borderRadius: 6,
+                          background: "rgba(0,0,0,0.7)",
+                          backdropFilter: "blur(8px)",
+                          border: `1px solid ${tier.color}50`,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 900,
+                            letterSpacing: "0.15em",
+                            color: tier.color,
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {opponent.tier}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: "20px 20px 20px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 16,
+                        flex: 1,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-end",
+                        }}
+                      >
+                        <div style={{ maxWidth: "60%" }}>
+                          <h3
+                            style={{
+                              fontSize: 16,
+                              fontWeight: 900,
+                              letterSpacing: "0.05em",
+                              color: "#fff",
+                              textTransform: "uppercase",
+                              margin: 0,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {opponent.name}
+                          </h3>
+                          <div
+                            style={{
+                              fontSize: 10,
+                              color: "#71717a",
                               letterSpacing: "0.1em",
-                              marginTop: 3,
+                              marginTop: 4,
                             }}
                           >
                             {opponent.contests_played} MATCHES
                           </div>
-                          <RatingBar rating={opponent.current_rating} />
+                        </div>
+
+                        <div style={{ textAlign: "right" }}>
+                          <div
+                            className={orbitron.className}
+                            style={{
+                              fontSize: 28,
+                              fontWeight: 900,
+                              color: tier.color,
+                              lineHeight: 1,
+                              textShadow: `0 0 20px ${tier.glow}`,
+                            }}
+                          >
+                            {opponent.current_rating}
+                          </div>
                         </div>
                       </div>
 
-                      <button
-                        className="challenge-btn"
-                        onClick={() => handleChallenge(opponent)}
-                        disabled={!!challenging || !isOnline}
-                        style={{
-                          width: "100%",
-                          padding: 12,
-                          borderRadius: 10,
-                          border: "none",
-                          cursor:
-                            isOnline && !challenging
-                              ? "pointer"
-                              : "not-allowed",
-                          background: !isOnline
-                            ? "rgba(255,255,255,0.03)"
-                            : isChallenging
-                              ? "rgba(99,102,241,0.3)"
-                              : "linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.08))",
-                          color: !isOnline
-                            ? "#3f3f46"
-                            : isChallenging
-                              ? "#818cf8"
-                              : "#a5b4fc",
-                          fontFamily: "ui-monospace,monospace",
-                          fontSize: 10,
-                          fontWeight: 700,
-                          letterSpacing: "0.18em",
-                          textTransform: "uppercase",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 8,
-                          borderTop: `1px solid ${isOnline ? "rgba(99,102,241,0.2)" : "rgba(255,255,255,0.04)"}`,
-                          opacity: challenging && !isChallenging ? 0.4 : 1,
-                        }}
-                        onMouseEnter={(e) => {
-                          if (isOnline && !challenging) {
-                            (
-                              e.currentTarget as HTMLButtonElement
-                            ).style.background =
-                              "linear-gradient(135deg,#6366f1,#4f46e5)";
-                            (e.currentTarget as HTMLButtonElement).style.color =
-                              "#fff";
-                            (
-                              e.currentTarget as HTMLButtonElement
-                            ).style.boxShadow =
-                              "0 4px 20px rgba(99,102,241,0.4)";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (isOnline && !challenging) {
-                            (
-                              e.currentTarget as HTMLButtonElement
-                            ).style.background =
-                              "linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.08))";
-                            (e.currentTarget as HTMLButtonElement).style.color =
-                              "#a5b4fc";
-                            (
-                              e.currentTarget as HTMLButtonElement
-                            ).style.boxShadow = "none";
-                          }
-                        }}
-                      >
-                        {isChallenging ? (
-                          <>
-                            <Loader2
-                              size={12}
-                              style={{ animation: "spin 1s linear infinite" }}
-                            />{" "}
-                            Waiting for response...
-                          </>
-                        ) : !isOnline ? (
-                          "Offline"
-                        ) : (
-                          <>
-                            <Zap size={12} /> Issue Challenge
-                          </>
-                        )}
-                      </button>
+                      <RatingBar rating={opponent.current_rating} />
+
+                      <div style={{ marginTop: "auto", paddingTop: 8 }}>
+                        <button
+                          className="challenge-btn"
+                          onClick={() => handleChallenge(opponent)}
+                          disabled={!!challenging || !isOnline}
+                          style={{
+                            width: "100%",
+                            padding: "14px 12px",
+                            borderRadius: 10,
+                            border: "none",
+                            cursor:
+                              isOnline && !challenging
+                                ? "pointer"
+                                : "not-allowed",
+                            background: !isOnline
+                              ? "rgba(255,255,255,0.04)"
+                              : isChallenging
+                                ? "rgba(99,102,241,0.3)"
+                                : "linear-gradient(135deg, rgba(99,102,241,0.2), rgba(99,102,241,0.1))",
+                            color: !isOnline
+                              ? "#52525b"
+                              : isChallenging
+                                ? "#818cf8"
+                                : "#a5b4fc",
+                            fontFamily: "ui-monospace,monospace",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: "0.2em",
+                            textTransform: "uppercase",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 8,
+                            borderTop: `1px solid ${isOnline ? "rgba(99,102,241,0.3)" : "rgba(255,255,255,0.02)"}`,
+                            opacity: challenging && !isChallenging ? 0.4 : 1,
+                          }}
+                          onMouseEnter={(e) => {
+                            if (isOnline && !challenging) {
+                              (
+                                e.currentTarget as HTMLButtonElement
+                              ).style.background =
+                                "linear-gradient(135deg,#6366f1,#4f46e5)";
+                              (
+                                e.currentTarget as HTMLButtonElement
+                              ).style.color = "#fff";
+                              (
+                                e.currentTarget as HTMLButtonElement
+                              ).style.boxShadow =
+                                "0 4px 20px rgba(99,102,241,0.4)";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (isOnline && !challenging) {
+                              (
+                                e.currentTarget as HTMLButtonElement
+                              ).style.background =
+                                "linear-gradient(135deg, rgba(99,102,241,0.2), rgba(99,102,241,0.1))";
+                              (
+                                e.currentTarget as HTMLButtonElement
+                              ).style.color = "#a5b4fc";
+                              (
+                                e.currentTarget as HTMLButtonElement
+                              ).style.boxShadow = "none";
+                            }
+                          }}
+                        >
+                          {isChallenging ? (
+                            <>
+                              <Loader2
+                                size={14}
+                                style={{ animation: "spin 1s linear infinite" }}
+                              />{" "}
+                              Connecting...
+                            </>
+                          ) : !isOnline ? (
+                            "Offline"
+                          ) : (
+                            <>
+                              <Zap size={14} /> Challenge Node
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
