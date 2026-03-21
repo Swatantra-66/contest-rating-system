@@ -859,11 +859,7 @@ function DuelRoomInner() {
         return;
       }
 
-      const exampleInputs = problem.examples
-        .split("\n")
-        .filter((l) => l.trim());
-      const fallbackInputData =
-        exampleInputs.length > 0 ? exampleInputs[0] : "";
+      const fallbackInputData = problem.examples.trim();
 
       const judgeResult = await submitToBackendJudge(
         wrappedCode,
@@ -1467,7 +1463,7 @@ function DuelRoomInner() {
               Leave Duel?
             </h3>
             <p className="text-zinc-500 text-[11px] leading-relaxed mb-2">
-              You can rejoin within{" "}
+              You can rejoin within
               <span className="text-amber-400 font-bold">10 minutes</span> from
               the sidebar.
             </p>
@@ -1516,7 +1512,6 @@ function DuelRoomInner() {
             className="bg-[#0f1015] border border-rose-500/30 rounded-2xl p-8 max-w-sm w-full mx-4 text-center font-mono"
             style={{ animation: "modalIn 0.25s ease-out" }}
           >
-            <div className="text-3xl mb-4">💀</div>
             <h3
               className={`${orbitron.className} text-lg font-black text-white uppercase tracking-tight mb-2`}
             >
