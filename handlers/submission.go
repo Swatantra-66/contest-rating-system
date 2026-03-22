@@ -124,7 +124,6 @@ func SubmitCodeHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Fallback to Dynamic Execution if no test cases in DB
 		if len(testCases) == 0 {
 			runWithoutDBCases(c, req, action)
 			return
@@ -140,18 +139,18 @@ func SubmitCodeHandler(db *gorm.DB) gin.HandlerFunc {
 		for i, tc := range testCases {
 			limits := limitsForLanguage(req.LanguageID)
 			judgeReq := Judge0Request{
-				SourceCode:     req.Code,
-				LanguageID:     req.LanguageID,
-				Stdin:          tc.InputData,
-				ExpectedOutput: tc.ExpectedOutput,
-				CPUTimeLimit:   limits.CPUTimeLimit,
-				WallTimeLimit:  limits.WallTimeLimit,
-				MemoryLimitKB:  limits.MemoryLimitKB,
+				SourceCode:    req.Code,
+				LanguageID:    req.LanguageID,
+				Stdin:         tc.InputData,
+				CPUTimeLimit:  limits.CPUTimeLimit,
+				WallTimeLimit: limits.WallTimeLimit,
+				MemoryLimitKB: limits.MemoryLimitKB,
+			}
+			if strings.TrimSpace(tc.ExpectedOutput) != "" {
+				judgeReq.ExpectedOutput = tc.ExpectedOutput
 			}
 
 			payloadBytes, _ := json.Marshal(judgeReq)
-
-			// Use dynamic URL from env and append required query params for synchronous wait
 			syncURL := judge0BaseURL() + "?base64_encoded=false&wait=true"
 			resp, err := httpClient.Post(syncURL, "application/json", bytes.NewBuffer(payloadBytes))
 			if err != nil {
@@ -167,10 +166,18 @@ func SubmitCodeHandler(db *gorm.DB) gin.HandlerFunc {
 			actualOut := strings.TrimSpace(judgeResp.Stdout)
 			expectedOut := strings.TrimSpace(tc.ExpectedOutput)
 			checkerType := resolvedCheckerType(tc.CheckerType)
-			matchedOutput := outputsMatchWithChecker(actualOut, expectedOut, checkerType, tc.FloatTolerance)
+
+			var matchedOutput bool
+			if expectedOut == "" {
+				matchedOutput = judgeResp.Status.ID == 3 &&
+					strings.TrimSpace(judgeResp.Stderr) == "" &&
+					strings.TrimSpace(judgeResp.CompileOutput) == ""
+			} else {
+				matchedOutput = outputsMatchWithChecker(actualOut, expectedOut, checkerType, tc.FloatTolerance)
+			}
+
 			passed := judgeResp.Status.ID == 3 && matchedOutput
 			verdict := deriveVerdict(judgeResp.Status.ID, matchedOutput)
-			discloseCaseDetails := !tc.IsHidden
 
 			execDetail := strings.TrimSpace(strings.Join([]string{
 				judgeResp.Message,
@@ -189,13 +196,14 @@ func SubmitCodeHandler(db *gorm.DB) gin.HandlerFunc {
 				MemoryKB:  judgeResp.Memory,
 				Hidden:    tc.IsHidden,
 			}
-			if discloseCaseDetails {
+			if !tc.IsHidden {
 				caseResult.Input = tc.InputData
 				caseResult.ExpectedOutput = normalizeOutput(expectedOut)
 				caseResult.ActualOutput = normalizeOutput(actualOut)
 				caseResult.ExecutionDetail = execDetail
 			}
 			results = append(results, caseResult)
+
 			curTimeMs := timeToMilliseconds(judgeResp.Time)
 			timeMsTotal += curTimeMs
 			if curTimeMs > timeMsMax {
@@ -249,7 +257,6 @@ func SubmitCodeHandler(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// Fallback execution when no cases are in DB
 func runWithoutDBCases(c *gin.Context, req SubmitRequest, action string) {
 	httpClient := &http.Client{Timeout: 20 * time.Second}
 	limits := limitsForLanguage(req.LanguageID)
@@ -265,45 +272,36 @@ func runWithoutDBCases(c *gin.Context, req SubmitRequest, action string) {
 
 	judgeResp, err := createAndAwaitJudgeResult(httpClient, judgeReq)
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{
-			"error":   "Judge0 request failed",
-			"details": err.Error(),
-		})
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Judge0 request failed", "details": err.Error()})
 		return
 	}
 
 	execDetail := strings.TrimSpace(strings.Join([]string{
-		judgeResp.Message,
-		judgeResp.Stderr,
-		judgeResp.CompileOutput,
+		judgeResp.Message, judgeResp.Stderr, judgeResp.CompileOutput,
 	}, "\n"))
 
-	passed := judgeResp.Status.ID == 3
-	verdict := deriveVerdict(judgeResp.Status.ID, false)
-	if passed {
-		verdict = "Accepted"
-	}
+	passed := judgeResp.Status.ID == 3 && strings.TrimSpace(judgeResp.Stderr) == "" && strings.TrimSpace(judgeResp.CompileOutput) == ""
+	verdict := deriveVerdict(judgeResp.Status.ID, passed)
 
-	results := []CaseResult{
-		{
-			CaseIndex:       1,
-			Verdict:         verdict,
-			Checker:         "none",
-			StatusID:        judgeResp.Status.ID,
-			Status:          judgeResp.Status.Description,
-			Passed:          passed,
-			Time:            judgeResp.Time,
-			MemoryKB:        judgeResp.Memory,
-			Hidden:          false,
-			ExecutionDetail: execDetail,
-			ActualOutput:    normalizeOutput(judgeResp.Stdout),
-		},
-	}
+	results := []CaseResult{{
+		CaseIndex:       1,
+		Verdict:         verdict,
+		Checker:         "none",
+		StatusID:        judgeResp.Status.ID,
+		Status:          judgeResp.Status.Description,
+		Passed:          passed,
+		Time:            judgeResp.Time,
+		MemoryKB:        judgeResp.Memory,
+		Hidden:          false,
+		ExecutionDetail: execDetail,
+		ActualOutput:    normalizeOutput(judgeResp.Stdout),
+	}}
 
 	timeMs := timeToMilliseconds(judgeResp.Time)
 	summary := buildJudgeSummary(results, timeMs, timeMs, judgeResp.Memory, judgeResp.Memory)
+
 	baseMessage := "No DB test cases found; executed directly on Judge0."
-	if strings.TrimSpace(action) == "run" {
+	if action == "run" {
 		baseMessage = "Run executed directly on Judge0 (no DB test cases found)."
 	}
 
@@ -337,7 +335,6 @@ func fetchTestCasesForProblem(db *gorm.DB, rawProblemSlug, action string) ([]Tes
 	if action == "run" {
 		query = query.Where("is_hidden = ?", false)
 	}
-
 	var testCases []TestCase
 	if err := query.Find(&testCases).Error; err != nil {
 		return nil, err
@@ -359,7 +356,6 @@ func outputsMatch(actual, expected string) bool {
 func outputsMatchWithChecker(actual, expected, checkerType string, floatTolerance float64) bool {
 	normalizedActual := normalizeOutput(actual)
 	normalizedExpected := normalizeOutput(expected)
-
 	switch checkerType {
 	case "exact":
 		return normalizedActual == normalizedExpected
@@ -386,13 +382,11 @@ func tokensEqual(actual, expected string) bool {
 	if len(actualTokens) != len(expectedTokens) {
 		return false
 	}
-
 	for i := range actualTokens {
 		if actualTokens[i] != expectedTokens[i] {
 			return false
 		}
 	}
-
 	return true
 }
 
@@ -402,45 +396,37 @@ func floatTokensEqual(actual, expected string, tolerance float64) bool {
 	if len(actualTokens) != len(expectedTokens) {
 		return false
 	}
-
 	for i := range actualTokens {
-		a := actualTokens[i]
-		e := expectedTokens[i]
+		a, e := actualTokens[i], expectedTokens[i]
 		if a == e {
 			continue
 		}
-
 		af, aErr := strconv.ParseFloat(a, 64)
 		ef, eErr := strconv.ParseFloat(e, 64)
 		if aErr != nil || eErr != nil {
 			return false
 		}
-
 		diff := math.Abs(af - ef)
 		allowed := math.Max(tolerance, tolerance*math.Max(math.Abs(af), math.Abs(ef)))
 		if diff > allowed {
 			return false
 		}
 	}
-
 	return true
 }
 
 func unorderedLinesEqual(actual, expected string) bool {
 	actualLines := strings.Split(actual, "\n")
 	expectedLines := strings.Split(expected, "\n")
-
 	if len(actualLines) == 1 && actualLines[0] == "" {
 		actualLines = []string{}
 	}
 	if len(expectedLines) == 1 && expectedLines[0] == "" {
 		expectedLines = []string{}
 	}
-
 	if len(actualLines) != len(expectedLines) {
 		return false
 	}
-
 	lineCounts := make(map[string]int, len(actualLines))
 	for _, line := range actualLines {
 		lineCounts[line]++
@@ -456,7 +442,6 @@ func unorderedLinesEqual(actual, expected string) bool {
 			return false
 		}
 	}
-
 	return true
 }
 
@@ -515,23 +500,21 @@ func limitsForLanguage(languageID int) JudgeLimits {
 		WallTimeLimit: defaultWallTimeLimit,
 		MemoryLimitKB: defaultMemoryLimitKB,
 	}
-
 	switch languageID {
-	case 71: // Python
+	case 71:
 		limits.CPUTimeLimit = 3
 		limits.WallTimeLimit = 8
-	case 74: // TypeScript
+	case 74:
 		limits.CPUTimeLimit = 3
 		limits.WallTimeLimit = 8
-	case 63: // JavaScript
+	case 63:
 		limits.CPUTimeLimit = 3
 		limits.WallTimeLimit = 8
-	case 62: // Java
+	case 62:
 		limits.CPUTimeLimit = 3
 		limits.WallTimeLimit = 8
 		limits.MemoryLimitKB = 384000
 	}
-
 	return limits
 }
 
@@ -540,7 +523,6 @@ func createAndAwaitJudgeResult(client *http.Client, req Judge0Request) (Judge0Re
 	if err != nil {
 		return Judge0Response{}, err
 	}
-
 	return pollJudgeSubmission(client, token)
 }
 
@@ -555,7 +537,6 @@ func judge0BaseURL() string {
 func createJudgeSubmissionWithRetry(client *http.Client, req Judge0Request) (string, error) {
 	payloadBytes, _ := json.Marshal(req)
 	url := judge0BaseURL() + "?base64_encoded=false&wait=false"
-
 	var lastErr error
 	for attempt := 0; attempt <= judge0MaxCreateRetries; attempt++ {
 		resp, err := client.Post(url, "application/json", bytes.NewBuffer(payloadBytes))
@@ -577,32 +558,27 @@ func createJudgeSubmissionWithRetry(client *http.Client, req Judge0Request) (str
 				}
 			}
 		}
-
 		if attempt < judge0MaxCreateRetries {
 			time.Sleep(time.Duration(attempt+1) * 200 * time.Millisecond)
 		}
 	}
-
 	return "", lastErr
 }
 
 func pollJudgeSubmission(client *http.Client, token string) (Judge0Response, error) {
 	url := fmt.Sprintf("%s/%s?base64_encoded=false", judge0BaseURL(), token)
 	deadline := time.Now().Add(judge0PollTimeout)
-
 	for time.Now().Before(deadline) {
 		resp, err := client.Get(url)
 		if err != nil {
 			time.Sleep(judge0PollInterval)
 			continue
 		}
-
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
 		if resp.StatusCode >= 400 {
 			return Judge0Response{}, fmt.Errorf("poll status %d: %s", resp.StatusCode, strings.TrimSpace(string(bodyBytes)))
 		}
-
 		var judgeResp Judge0Response
 		if err := json.Unmarshal(bodyBytes, &judgeResp); err != nil {
 			return Judge0Response{}, fmt.Errorf("invalid poll response: %s", string(bodyBytes))
@@ -610,10 +586,8 @@ func pollJudgeSubmission(client *http.Client, token string) (Judge0Response, err
 		if judgeResp.Status.ID != 1 && judgeResp.Status.ID != 2 {
 			return judgeResp, nil
 		}
-
 		time.Sleep(judge0PollInterval)
 	}
-
 	return Judge0Response{}, fmt.Errorf("judge timed out while polling token %s", token)
 }
 
@@ -635,12 +609,10 @@ func buildJudgeSummary(results []CaseResult, timeMsTotal, timeMsMax float64, mem
 			passed++
 		}
 	}
-
 	avg := 0.0
 	if len(results) > 0 {
 		avg = timeMsTotal / float64(len(results))
 	}
-
 	return JudgeSummary{
 		PassedCases:   passed,
 		TotalCases:    len(results),
