@@ -216,10 +216,10 @@ func normalizeMode(input string) string {
 
 func toContestConfigPayload(cfg models.ContestConfig) map[string]interface{} {
 	return map[string]interface{}{
-		"contest_id": cfg.ContestID,
-		"difficulty": cfg.Difficulty,
-		"mode":       cfg.Mode,
-		"timer_secs": cfg.TimerSecs,
+		"contest_id":   cfg.ContestID,
+		"difficulty":   cfg.Difficulty,
+		"mode":         cfg.Mode,
+		"timer_secs":   cfg.TimerSecs,
 		"problem_slug": cfg.ProblemSlug,
 	}
 }
@@ -348,10 +348,10 @@ func (h *Handler) getContestConfig(contestID string) (models.ContestConfig, bool
 		d, m, ts, ps, parsed := contestConfigFromPayload(cached)
 		if parsed {
 			return models.ContestConfig{
-				ContestID:  contestID,
-				Difficulty: d,
-				Mode:       m,
-				TimerSecs:  ts,
+				ContestID:   contestID,
+				Difficulty:  d,
+				Mode:        m,
+				TimerSecs:   ts,
 				ProblemSlug: ps,
 			}, true
 		}
@@ -922,5 +922,6 @@ func (h *Handler) GetRandomProblem(c *gin.Context) {
 		}()
 	}
 
+	go seedTestCasesForProblem(h.db, problem)
 	c.JSON(http.StatusOK, problem)
 }
