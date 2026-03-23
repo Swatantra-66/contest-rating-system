@@ -231,7 +231,7 @@ export default function NodeHub() {
             }}
           >
             {!user ? (
-              <SignInButton mode="modal" fallbackRedirectUrl="/docs">
+              <SignInButton mode="modal" fallbackRedirectUrl="/">
                 <button className="group flex flex-col items-center gap-2 text-zinc-500 hover:text-white transition-colors cursor-pointer">
                   <span className="text-[10px] font-mono uppercase tracking-[0.3em]">
                     Get Started
