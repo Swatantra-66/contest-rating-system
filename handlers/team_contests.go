@@ -315,7 +315,6 @@ func (h *Handler) FinalizeTeamContest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, gin.H{"message": "team contest finalized", "contest_id": contestID})
 }
 
@@ -348,6 +347,60 @@ func (h *Handler) GetTeamContestScoreboard(c *gin.Context) {
 		"contest_id": contestID,
 		"mode":       contest.Mode,
 		"scoreboard": scoreboard,
+	})
+}
+
+func (h *Handler) GetMyTeam(c *gin.Context) {
+	contestID := c.Param("id")
+	userID := c.Query("user_id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	var member TeamContestMember
+	err := h.db.
+		Where("user_id = ? AND team_id IN (SELECT id FROM team_contest_teams WHERE contest_id = ?)", userID, contestID).
+		First(&member).Error
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user is not a member of this contest"})
+		return
+	}
+
+	var team TeamContestTeam
+	if err := h.db.First(&team, "id = ?", member.TeamID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "team not found"})
+		return
+	}
+
+	var problems []TeamContestProblem
+	h.db.Where("contest_id = ?", contestID).Order("position asc").Find(&problems)
+
+	var contest TeamContest
+	h.db.First(&contest, "id = ?", contestID)
+
+	c.JSON(http.StatusOK, gin.H{
+		"team":       team,
+		"member":     member,
+		"problems":   problems,
+		"contest":    contest,
+		"is_captain": member.IsCaptain,
+	})
+}
+
+func (h *Handler) StartTeamContest(c *gin.Context) {
+	contestID := c.Param("id")
+	now := time.Now().UTC()
+	if err := h.db.Model(&TeamContest{}).
+		Where("id = ?", contestID).
+		Update("started_at", now).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "contest started",
+		"contest_id": contestID,
+		"started_at": now,
 	})
 }
 
