@@ -5,7 +5,12 @@ import { Menu, X, Database, Zap, Trophy, Lock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Orbitron } from "next/font/google";
-import { UserButton, SignOutButton, useAuth } from "@clerk/nextjs";
+import {
+  UserButton,
+  SignOutButton,
+  SignInButton,
+  useAuth,
+} from "@clerk/nextjs";
 import UnicornScene from "unicornstudio-react";
 
 const futuristicFont = Orbitron({ subsets: ["latin"], weight: ["700", "900"] });
@@ -17,6 +22,7 @@ export default function Sidebar() {
   const { userId, isLoaded } = useAuth();
   const ADMIN_USER_ID = process.env.NEXT_PUBLIC_ADMIN_USER_ID;
   const isAdmin = isLoaded && userId === ADMIN_USER_ID;
+  const isAuthenticated = isLoaded && !!userId;
 
   const [stats, setStats] = useState({
     total_nodes: 0,
@@ -207,7 +213,6 @@ export default function Sidebar() {
                     : "CONNECTION_ERROR :: 500"}
                 </p>
                 <p className="text-[9px] text-zinc-600 font-mono tracking-widest mt-0.5 flex items-center gap-1">
-                  <span className="w-1 h-1 bg-emerald-500/50 rounded-full" />
                   Sync:{" "}
                   {new Date().toLocaleTimeString([], {
                     hour: "2-digit",
@@ -217,52 +222,68 @@ export default function Sidebar() {
               </div>
             </div>
 
-            <div className="border-t border-zinc-800/80 pt-4 px-2 space-y-4">
-              <SignOutButton>
-                <button className="flex items-center gap-3 w-full p-2 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 transition-all rounded-md group cursor-pointer">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="group-hover:-translate-x-1 transition-transform"
-                  >
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                    <polyline points="16 17 21 12 16 7"></polyline>
-                    <line x1="21" y1="12" x2="9" y2="12"></line>
-                  </svg>
-                  <span className="font-bold tracking-widest uppercase text-[10px]">
-                    System Logout
-                  </span>
-                </button>
-              </SignOutButton>
+            {isAuthenticated ? (
+              <div className="border-t border-zinc-800/80 pt-4 px-2 space-y-4">
+                <SignOutButton>
+                  <button className="flex items-center gap-3 w-full p-2 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 transition-all rounded-md group cursor-pointer">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="group-hover:-translate-x-1 transition-transform"
+                    >
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                      <polyline points="16 17 21 12 16 7"></polyline>
+                      <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    <span className="font-bold tracking-widest uppercase text-[10px]">
+                      System Logout
+                    </span>
+                  </button>
+                </SignOutButton>
 
-              <div className="flex items-center gap-3 p-2">
-                <UserButton
-                  appearance={{
-                    elements: {
-                      userButtonAvatarBox:
-                        "w-8 h-8 border border-zinc-700 hover:border-emerald-500 transition-colors",
-                      userButtonPopoverCard:
-                        "bg-zinc-900 border border-zinc-800 shadow-2xl",
-                    },
-                  }}
-                />
-                <div className="flex flex-col">
-                  <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest">
-                    System Access
-                  </span>
-                  <span className="text-[10px] text-zinc-200 font-bold tracking-wider uppercase">
-                    Authenticated
-                  </span>
+                <div className="flex items-center gap-3 p-2">
+                  <UserButton
+                    appearance={{
+                      elements: {
+                        userButtonAvatarBox:
+                          "w-8 h-8 border border-zinc-700 hover:border-emerald-500 transition-colors",
+                        userButtonPopoverCard:
+                          "bg-zinc-900 border border-zinc-800 shadow-2xl",
+                      },
+                    }}
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest">
+                      System Access
+                    </span>
+                    <span className="text-[10px] text-zinc-200 font-bold tracking-wider uppercase">
+                      Authenticated
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="border-t border-zinc-800/80 pt-4 px-2 space-y-4">
+                <SignInButton mode="modal">
+                  <button className="flex items-center gap-3 w-full p-2 text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/30 transition-all rounded-md group cursor-pointer">
+                    <Zap
+                      size={16}
+                      className="group-hover:scale-110 transition-transform"
+                    />
+                    <span className="font-bold tracking-widest uppercase text-[10px]">
+                      System Login
+                    </span>
+                  </button>
+                </SignInButton>
+              </div>
+            )}
           </div>
         </div>
       </div>
