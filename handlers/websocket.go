@@ -372,6 +372,7 @@ func (h *WSHub) handleMessage(c *Client, data []byte) {
 			"member_count": memberCount,
 		})
 		fwd, _ := json.Marshal(WSMessage{Type: "team_member_joined", Payload: payload})
+		h.sendTo(c.UserID, fwd)
 		h.broadcastToTeamRoom(p.ContestID, fwd)
 
 	case "team_ready":
