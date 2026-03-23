@@ -42,9 +42,11 @@ export default function RootLayout({
         baseTheme: dark,
         variables: {
           colorPrimary: "#10b981",
-          colorBackground: "",
+          colorBackground: "#09090b",
           colorText: "#ffffff",
-          colorTextSecondary: "#d4d4d8",
+          colorTextOnPrimaryBackground: "#000000",
+          colorTextSecondary: "#a1a1aa",
+          colorInputText: "#ffffff",
           fontFamily: "var(--font-geist-sans)",
         },
         elements: {
@@ -55,6 +57,87 @@ export default function RootLayout({
           card: {
             backgroundColor: "#18181b",
             border: "1px solid #27272a",
+            boxShadow: "0 0 30px rgba(16,185,129,0.05)",
+          },
+
+          // Modal Close Button (Cross icon) make it visible
+          modalCloseButton: {
+            color: "#ffffff",
+            "&:hover": {
+              color: "#10b981",
+            },
+          },
+
+          navbar: {
+            backgroundColor: "#09090b",
+            borderRight: "1px solid #27272a",
+          },
+          navbarButton: {
+            color: "#a1a1aa",
+            "&:hover": {
+              backgroundColor: "#27272a", // Gray background on hover
+              color: "#ffffff",
+            },
+          },
+          pageScrollBox: {
+            backgroundColor: "#18181b",
+          },
+          profileSection: {
+            borderBottom: "1px solid #27272a",
+          },
+
+          profileSectionTitle: {
+            color: "#ffffff",
+            fontFamily: "var(--font-orbitron)",
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+          },
+          profileSectionTitleText: {
+            color: "#ffffff",
+          },
+          profileSectionPrimaryButton: {
+            color: "#10b981",
+          },
+          userPreviewTextContainer: {
+            color: "#ffffff",
+          },
+          // Main user identifier (Username "AR1SEE") made green
+          userPreviewMainIdentifier: {
+            color: "#10b981",
+            fontWeight: "600",
+          },
+          userPreviewSecondaryIdentifier: {
+            color: "#a1a1aa",
+          },
+          badge: {
+            backgroundColor: "#27272a",
+            color: "#ffffff",
+            border: "1px solid #3f3f46",
+          },
+          profileSectionContent: {
+            color: "#d4d4d8",
+          },
+          accordionTriggerButton: {
+            color: "#ffffff",
+          },
+          activeDeviceIcon: {
+            color: "#10b981",
+          },
+
+          userButtonPopoverCard: {
+            backgroundColor: "#18181b",
+            border: "1px solid #27272a",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
+          },
+          userButtonPopoverActionButton: {
+            color: "#d4d4d8",
+            "&:hover": {
+              backgroundColor: "#27272a",
+              color: "#10b981",
+            },
+          },
+          userButtonPopoverActionButtonText: {
+            color: "#ffffff",
           },
 
           headerTitle: {
@@ -63,97 +146,124 @@ export default function RootLayout({
             textTransform: "uppercase",
             letterSpacing: "0.1em",
           },
-
           headerSubtitle: {
-            color: "#d4d4d8",
+            color: "#a1a1aa",
           },
-
           identityPreviewText: {
-            color: "#e4e4e7",
+            color: "#ffffff",
             fontWeight: "500",
           },
 
           socialButtonsBlockButton: {
-            backgroundColor: "#27272a",
+            backgroundColor: "#09090b",
             border: "1px solid #3f3f46",
+            "&:hover": {
+              backgroundColor: "#27272a",
+              borderColor: "#10b981",
+            },
           },
-
           socialButtonsBlockButtonText: {
             color: "#ffffff",
             fontWeight: "600",
+            fontFamily: "var(--font-geist-mono)",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
           },
-
           socialButtonsProviderIcon: {
             filter: "brightness(0) invert(1)",
           },
-
           "socialButtonsProviderIcon--github": {
             filter: "brightness(0) invert(1) contrast(1.2)",
             opacity: "1",
           },
 
           formFieldInput: {
-            backgroundColor: "#ffffff",
+            backgroundColor: "#09090b",
             borderColor: "#3f3f46",
-            color: "#27272a",
+            color: "#ffffff",
+            fontFamily: "var(--font-geist-mono)",
+            "&:focus": {
+              borderColor: "#10b981",
+            },
           },
-
           otpCodeFieldInput: {
-            backgroundColor: "#ffffff",
+            backgroundColor: "#09090b",
             borderColor: "#3f3f46",
-            color: "#27272a",
-            fontWeight: "600",
+            color: "#10b981",
+            fontWeight: "700",
+            fontFamily: "var(--font-geist-mono)",
+            "&:focus": {
+              borderColor: "#10b981",
+            },
+          },
+          formFieldInput__verificationCode: {
+            backgroundColor: "#09090b",
+            borderColor: "#3f3f46",
+            color: "#10b981",
+            fontWeight: "700",
+            fontFamily: "var(--font-geist-mono)",
           },
 
           formFieldLabel: {
-            color: "#e4e4e7",
+            color: "#d4d4d8",
+            fontFamily: "var(--font-geist-mono)",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            fontSize: "11px",
           },
-
           formFieldHintText: {
-            color: "#a1a1aa",
+            color: "#71717a",
           },
-
           formFieldInfoText: {
-            color: "#a1a1aa",
+            color: "#71717a",
           },
-
           formFieldErrorText: {
             color: "#ef4444",
+            fontFamily: "var(--font-geist-mono)",
+            fontSize: "11px",
           },
-
           formFieldSuccessText: {
             color: "#10b981",
             fontWeight: "500",
           },
 
-          formFieldInput__verificationCode: {
-            backgroundColor: "#ffffff",
-            borderColor: "#3f3f46",
-            color: "#27272a",
-            fontWeight: "600",
-          },
-
           dividerLine: {
             backgroundColor: "#3f3f46",
           },
-
           dividerText: {
-            color: "#a1a1aa",
+            color: "#71717a",
+            fontFamily: "var(--font-geist-mono)",
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
           },
-
           footerActionText: {
             color: "#a1a1aa",
           },
-
           footerActionLink: {
             color: "#10b981",
             fontWeight: "600",
+            "&:hover": {
+              color: "#34d399",
+            },
           },
 
           formButtonPrimary: {
             backgroundColor: "#10b981",
-            color: "#ffffff",
-            fontWeight: "600",
+            color: "#000000",
+            fontWeight: "800",
+            fontFamily: "var(--font-geist-mono)",
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+            boxShadow: "0 4px 0 rgba(4,120,87,1)",
+            "&:hover": {
+              backgroundColor: "#34d399",
+              transform: "translateY(2px)",
+              boxShadow: "0 2px 0 rgba(4,120,87,1)",
+            },
+            "&:active": {
+              transform: "translateY(4px)",
+              boxShadow: "none",
+            },
           },
         },
       }}
