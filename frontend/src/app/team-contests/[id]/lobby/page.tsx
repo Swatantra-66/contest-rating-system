@@ -58,6 +58,7 @@ export default function TeamLobbyPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [starting, setStarting] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -441,12 +442,23 @@ export default function TeamLobbyPage() {
                 {typeof window !== "undefined" ? window.location.href : ""}
               </div>
               <button
-                onClick={() =>
-                  navigator.clipboard.writeText(window.location.href)
-                }
-                className="px-3 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 transition-all cursor-pointer"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="px-3 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all cursor-pointer"
+                style={{
+                  borderColor: copied
+                    ? "rgba(74,222,128,0.4)"
+                    : "rgba(99,102,241,0.3)",
+                  color: copied ? "#4ade80" : "#818cf8",
+                  background: copied
+                    ? "rgba(74,222,128,0.08)"
+                    : "rgba(99,102,241,0.08)",
+                }}
               >
-                Copy
+                {copied ? "Copied!" : "Copy"}
               </button>
             </div>
             <p className="text-[9px] text-zinc-700 mt-2">
