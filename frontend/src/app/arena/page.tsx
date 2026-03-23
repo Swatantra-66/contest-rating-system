@@ -667,28 +667,9 @@ export default function ArenaPage() {
                     transition: "all 0.2s",
                   }}
                 >
-                  {m === "same" ? "⚔ Same" : "🎲 Random"}
+                  {m === "same" ? "Same" : "Random"}
                 </button>
               ))}
-              <Link
-                href="/team-contests/new"
-                style={{
-                  marginLeft: 8,
-                  padding: "5px 14px",
-                  borderRadius: 8,
-                  border: "1px solid rgba(251,191,36,0.5)",
-                  background: "rgba(251,191,36,0.12)",
-                  color: "#fbbf24",
-                  fontFamily: "ui-monospace,monospace",
-                  fontSize: 9,
-                  fontWeight: 700,
-                  letterSpacing: "0.15em",
-                  textTransform: "uppercase",
-                  textDecoration: "none",
-                }}
-              >
-                3v3 ICPC
-              </Link>
             </div>
           </div>
 
