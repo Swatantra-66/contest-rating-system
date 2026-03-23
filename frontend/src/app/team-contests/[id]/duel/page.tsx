@@ -6,7 +6,7 @@ import { useUser } from "@clerk/nextjs";
 import { Orbitron } from "next/font/google";
 import Link from "next/link";
 import Editor from "@monaco-editor/react";
-import { ArrowLeft, Zap, ChevronRight, ChevronLeft } from "lucide-react";
+import { ArrowLeft, Zap } from "lucide-react";
 import {
   DEFAULT_SNIPPETS,
   fetchJudge0Languages,
@@ -14,7 +14,6 @@ import {
   getLanguageExtension,
   getLanguageLabel,
   getMonacoLanguage,
-  isWrapperSupported,
   resolveJudge0LanguageId,
   toWrapperLanguage,
   type Judge0Language,
@@ -63,6 +62,7 @@ interface ProblemDetail {
   tags: string[];
   leetcodeUrl: string;
   metaData: string;
+  codeSnippets: { lang_slug: string; code: string }[];
 }
 
 interface BackendJudgeResult {
@@ -146,20 +146,17 @@ export default function TeamDuelPage() {
   const [myTeam, setMyTeam] = useState<MyTeamData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   const [selectedProblemIdx, setSelectedProblemIdx] = useState(0);
   const [problemDetails, setProblemDetails] = useState<
     Record<string, ProblemDetail>
   >({});
   const [fetchingProblem, setFetchingProblem] = useState(false);
-
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("cpp");
   const [judgeLanguages, setJudgeLanguages] = useState<Judge0Language[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [runResult, setRunResult] = useState("");
   const [solvedProblems, setSolvedProblems] = useState<Set<string>>(new Set());
-
   const [timer, setTimer] = useState(0);
   const [scoreboard, setScoreboard] = useState<ScoreRow[]>([]);
   const [panelOpen, setPanelOpen] = useState(true);
@@ -188,10 +185,8 @@ export default function TeamDuelPage() {
         }
         setMyTeam(data);
         const started = new Date(data.contest.started_at).getTime();
-        const duration = data.contest.duration_sec;
         const elapsed = Math.floor((Date.now() - started) / 1000);
-        const remaining = Math.max(0, duration - elapsed);
-        setTimer(remaining);
+        setTimer(Math.max(0, data.contest.duration_sec - elapsed));
       })
       .catch(() => setError("Failed to load team info"))
       .finally(() => setLoading(false));
@@ -253,11 +248,10 @@ export default function TeamDuelPage() {
             : msg.payload;
         if (msg.type === "team_verdict" && payload.contest_id === contestID) {
           loadScoreboard();
-          if (payload.verdict === "AC") {
+          if (payload.verdict === "AC")
             setSolvedProblems(
               (prev) => new Set([...prev, payload.problem_slug]),
             );
-          }
         }
       } catch {}
     };
@@ -281,51 +275,43 @@ export default function TeamDuelPage() {
     async (slug: string) => {
       if (problemDetails[slug]) {
         const detail = problemDetails[slug];
-        setCode(DEFAULT_SNIPPETS[language] || "");
+        const snippetMap: Record<string, string> = {};
+        detail.codeSnippets?.forEach((s) => {
+          snippetMap[s.lang_slug] = s.code;
+        });
+        setCode(snippetMap[language] || DEFAULT_SNIPPETS[language] || "");
         return;
       }
       setFetchingProblem(true);
       try {
-        const allRes = await fetch(`https://leetcode.com/graphql`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query: `query($titleSlug:String!){question(titleSlug:$titleSlug){title titleSlug difficulty content exampleTestcases metaData codeSnippets{langSlug code} topicTags{name}}}`,
-            variables: { titleSlug: slug },
-          }),
+        const res = await fetch(`${API}problems/${slug}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const snippetMap: Record<string, string> = {};
+        data.code_snippets?.forEach((s: any) => {
+          snippetMap[s.lang_slug] = s.code;
         });
-        if (allRes.ok) {
-          const data = await allRes.json();
-          const q = data?.data?.question;
-          if (q) {
-            const snippetMap: Record<string, string> = {};
-            q.codeSnippets?.forEach((s: any) => {
-              snippetMap[s.langSlug] = s.code;
-            });
-            const detail: ProblemDetail = {
-              slug: q.titleSlug,
-              title: q.title,
-              difficulty: q.difficulty as Difficulty,
-              content: stripHtml(q.content || ""),
-              starterCode: snippetMap["java"] || snippetMap["cpp"] || "",
-              examples: q.exampleTestcases || "",
-              timerSecs: 1800,
-              tags: q.topicTags?.map((t: any) => t.name) || [],
-              leetcodeUrl: `https://leetcode.com/problems/${slug}/`,
-              metaData: q.metaData || "",
-            };
-            setProblemDetails((prev) => ({ ...prev, [slug]: detail }));
-            const starter =
-              snippetMap[language] || DEFAULT_SNIPPETS[language] || "";
-            setCode(starter);
-          }
-        }
+        const detail: ProblemDetail = {
+          slug: data.slug,
+          title: data.title,
+          difficulty: data.difficulty as Difficulty,
+          content: stripHtml(data.content || ""),
+          starterCode: snippetMap["java"] || snippetMap["cpp"] || "",
+          examples: data.examples || "",
+          timerSecs: data.timer_secs || 1800,
+          tags: data.tags || [],
+          leetcodeUrl: data.leetcode_url || "",
+          metaData: data.meta_data || "",
+          codeSnippets: data.code_snippets || [],
+        };
+        setProblemDetails((prev) => ({ ...prev, [slug]: detail }));
+        setCode(snippetMap[language] || DEFAULT_SNIPPETS[language] || "");
       } catch {
       } finally {
         setFetchingProblem(false);
       }
     },
-    [problemDetails, language, contestID],
+    [problemDetails, language],
   );
 
   useEffect(() => {
@@ -625,9 +611,7 @@ export default function TeamDuelPage() {
                       </div>
                     </>
                   ) : (
-                    <p className="text-zinc-600 text-xs">
-                      Select a problem above
-                    </p>
+                    <p className="text-zinc-600 text-xs">Loading problem...</p>
                   )}
                 </div>
               )}
@@ -724,9 +708,18 @@ export default function TeamDuelPage() {
             <select
               value={language}
               onChange={(e) => {
-                setLanguage(e.target.value);
+                const lang = e.target.value;
+                setLanguage(lang);
                 const detail = currentDetail;
-                setCode(DEFAULT_SNIPPETS[e.target.value] || "");
+                if (detail) {
+                  const snippetMap: Record<string, string> = {};
+                  detail.codeSnippets?.forEach((s) => {
+                    snippetMap[s.lang_slug] = s.code;
+                  });
+                  setCode(snippetMap[lang] || DEFAULT_SNIPPETS[lang] || "");
+                } else {
+                  setCode(DEFAULT_SNIPPETS[lang] || "");
+                }
               }}
               className="bg-zinc-900 border border-zinc-800 text-zinc-400 text-[9px] tracking-widest rounded px-2 py-1 cursor-pointer"
               style={{ fontFamily: "ui-monospace, monospace" }}
@@ -795,7 +788,7 @@ export default function TeamDuelPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleSubmit("run")}
-                disabled={submitting || !currentProblem}
+                disabled={submitting || !currentProblem || !currentDetail}
                 className="flex items-center gap-2 px-5 py-2 rounded-lg text-white font-mono text-[10px] font-bold uppercase tracking-widest border border-indigo-500/30 cursor-pointer transition-all disabled:opacity-50 hover:bg-indigo-500/10 bg-transparent"
               >
                 ▶ Run
@@ -805,6 +798,7 @@ export default function TeamDuelPage() {
                 disabled={
                   submitting ||
                   !currentProblem ||
+                  !currentDetail ||
                   solvedProblems.has(currentProblem?.problem_slug || "")
                 }
                 className="flex items-center gap-2 px-5 py-2 rounded-lg text-white font-mono text-[10px] font-bold uppercase tracking-widest border-0 cursor-pointer transition-all disabled:opacity-50"
