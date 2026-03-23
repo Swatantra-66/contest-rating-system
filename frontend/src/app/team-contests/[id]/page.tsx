@@ -486,7 +486,7 @@ export default function TeamContestPage() {
                   disabled={
                     submitting || !teamID || !problemSlug || contest?.finalized
                   }
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all text-xs font-bold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all text-xs font-bold uppercase tracking-widest disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {submitting ? (
                     <Loader2 size={14} className="animate-spin" />
@@ -498,7 +498,7 @@ export default function TeamContestPage() {
                 <button
                   onClick={finalizeContest}
                   disabled={contest?.finalized}
-                  className="sm:w-1/3 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500 hover:text-white transition-all text-xs font-bold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="sm:w-1/3 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500 hover:text-white transition-all text-xs font-bold uppercase tracking-widest disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   <Lock size={14} /> Finalize
                 </button>
