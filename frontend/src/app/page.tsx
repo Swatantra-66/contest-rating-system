@@ -4,14 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useUser, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 import UnicornScene from "unicornstudio-react";
-import {
-  Swords,
-  Trophy,
-  Activity,
-  Loader2,
-  Terminal,
-  Zap,
-} from "lucide-react";
+import { Swords, Trophy, Activity, Loader2, Terminal, Zap } from "lucide-react";
 
 export default function NodeHub() {
   const { user, isLoaded } = useUser();
@@ -214,7 +207,7 @@ export default function NodeHub() {
               ) : (
                 <>
                   <SignInButton mode="modal">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 backdrop-blur-md text-zinc-300 hover:text-white font-mono text-[11px] font-bold uppercase tracking-widest rounded-lg border border-zinc-700 hover:border-zinc-500 transition-all cursor-pointer">
+                    <button className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 backdrop-blur-md text-zinc-300 hover:text-white font-mono text-[11px] font-bold uppercase tracking-widest rounded-lg border border-zinc-700 shadow-[0_3px_0_rgba(82,82,91,0.5)] hover:border-zinc-500 hover:shadow-[0_1px_0_rgba(82,82,91,0.5)] hover:translate-y-[2px] active:shadow-none active:translate-y-[3px] transition-all cursor-pointer">
                       System Login
                     </button>
                   </SignInButton>
@@ -237,15 +230,25 @@ export default function NodeHub() {
               animationFillMode: "forwards",
             }}
           >
-            <button
-              onClick={handleScroll}
-              className="group flex flex-col items-center gap-2 text-zinc-500 hover:text-white transition-colors cursor-pointer"
-            >
-              <span className="text-[10px] font-mono uppercase tracking-[0.3em]">
-                Go to System Docs for more info
-              </span>
-              {/* <ChevronDown className="w-5 h-5 animate-bounce text-zinc-400 group-hover:text-indigo-400" /> */}
-            </button>
+            {!user ? (
+              <SignInButton mode="modal" fallbackRedirectUrl="/docs">
+                <button className="group flex flex-col items-center gap-2 text-zinc-500 hover:text-white transition-colors cursor-pointer">
+                  <span className="text-[10px] font-mono uppercase tracking-[0.3em]">
+                    Get Started
+                  </span>
+                  {/* <ChevronDown className="w-5 h-5 animate-bounce text-zinc-400 group-hover:text-indigo-400" /> */}
+                </button>
+              </SignInButton>
+            ) : (
+              <Link
+                href="/docs"
+                className="group flex flex-col items-center gap-2 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+              >
+                <span className="text-[10px] font-mono uppercase tracking-[0.3em]">
+                  Access System Docs for more info
+                </span>
+              </Link>
+            )}
           </div>
         </section>
         {/* <BelowFold nodeId={nodeId} /> */}
