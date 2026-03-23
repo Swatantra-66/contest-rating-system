@@ -46,6 +46,12 @@ A coding duel contest platform with a rating system based on a transparent perce
 - **Immersive 3D UI:** A terminal-style, dark-mode command center featuring glowing 3D typography and butter-smooth native CSS scroll animations.
 - **Real-Time System Metrics:** Live sidebar tracking of Total Nodes, System Average Elo, Active Contests, and Engine Health status.
 - **Contest Tracking:** Create and manage unique contests/matches via a secure Matchmaking Arena.
+- **3v3 ICPC Multiplayer Battle Arena:**
+  - **Dynamic Lobby Creation:** A host initiates a custom lobby, sets the match duration, and utilizes "Quick Pick" algorithms (e.g., 3 Mixed, 3 Easy, 3 Hard) to instantly generate a balanced problem pool from LeetCode.
+  - **URL-Based Matchmaking:** The host can seamlessly share the unique lobby URL with 5 other players to invite them to the match.
+  - **Faction Readiness:** Players join as "Nodes" across two factions (Team Alpha vs. Team Beta). Captains are designated for ultimate team overrides.
+  - **Live Editor Deployment:** Once all 6 players are locked in, the host clicks "Deploy Match," instantly teleporting all nodes into the live Monaco editor arena to begin solving the shared problem pool.
+  - **Official ICPC Scoreboard:** A real-time dashboard tracks solves and calculates time penalties strictly based on official ICPC rules (intelligently ignoring Compilation Errors).
 - **Rating Engine:** Custom Golang algorithm calculates rating changes and percentiles based on 1v1 match placements.
 - **Transaction Safety:** Go backend utilizes database transactions to ensure that user ratings and rating histories are updated atomically.
 - **Data Visualization:** Dynamic profile pages featuring interactive line charts to track a user's performance trajectory over time.
