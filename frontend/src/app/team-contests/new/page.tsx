@@ -33,6 +33,57 @@ const DIFF_COLORS: Record<string, string> = {
   hard: "#f87171",
 };
 
+const focusColor = (color: string) =>
+  color === "indigo"
+    ? "rgba(99,102,241,0.5)"
+    : color === "rose"
+      ? "rgba(244,63,94,0.5)"
+      : "rgba(251,191,36,0.5)";
+const ringColor = (color: string) =>
+  color === "indigo"
+    ? "rgba(99,102,241,0.15)"
+    : color === "rose"
+      ? "rgba(244,63,94,0.15)"
+      : "rgba(251,191,36,0.15)";
+
+function GlowingInput({
+  icon: Icon,
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  color = "amber",
+}: any) {
+  return (
+    <div className="flex flex-col gap-1.5 w-full">
+      <label className="text-[9px] text-zinc-500 uppercase tracking-[0.2em] font-bold ml-1">
+        {label}
+      </label>
+      <div className="relative">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
+          <Icon size={14} />
+        </div>
+        <input
+          type={type}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          className="w-full bg-black/40 border border-zinc-800 rounded-lg pl-9 pr-4 py-3 text-xs text-zinc-200 font-mono outline-none transition-all placeholder:text-zinc-700"
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = focusColor(color);
+            e.currentTarget.style.boxShadow = `0 0 0 3px ${ringColor(color)}`;
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = "rgba(39,39,42,1)";
+            e.currentTarget.style.boxShadow = "none";
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function CreateICPCContest() {
   const router = useRouter();
 
@@ -43,7 +94,6 @@ export default function CreateICPCContest() {
   const [fetchedProblems, setFetchedProblems] = useState<
     { slug: string; title: string; difficulty: string }[]
   >([]);
-
   const [teamA, setTeamA] = useState<TeamInput>({
     team_name: "Team Alpha",
     member_ids: ["", "", ""],
@@ -81,10 +131,8 @@ export default function CreateICPCContest() {
           "medium",
           "hard",
         ].slice(0, count);
-
     const fetched: { slug: string; title: string; difficulty: string }[] = [];
     const usedSlugs = new Set<string>();
-
     for (let i = 0; i < count; i++) {
       try {
         const res = await fetch(
@@ -102,7 +150,6 @@ export default function CreateICPCContest() {
         }
       } catch {}
     }
-
     setFetchedProblems(fetched);
     setProblemSlugs(fetched.map((p) => p.slug).join(","));
     setFetchingProblems(false);
@@ -160,56 +207,6 @@ export default function CreateICPCContest() {
       setError("Network error while deploying contest");
       setSubmitting(false);
     }
-  };
-
-  const GlowingInput = ({
-    icon: Icon,
-    label,
-    value,
-    onChange,
-    placeholder,
-    type = "text",
-    color = "amber",
-  }: any) => {
-    const focusColor =
-      color === "indigo"
-        ? "rgba(99,102,241,0.5)"
-        : color === "rose"
-          ? "rgba(244,63,94,0.5)"
-          : "rgba(251,191,36,0.5)";
-    const ringColor =
-      color === "indigo"
-        ? "rgba(99,102,241,0.15)"
-        : color === "rose"
-          ? "rgba(244,63,94,0.15)"
-          : "rgba(251,191,36,0.15)";
-    return (
-      <div className="flex flex-col gap-1.5 w-full">
-        <label className="text-[9px] text-zinc-500 uppercase tracking-[0.2em] font-bold ml-1">
-          {label}
-        </label>
-        <div className="relative">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
-            <Icon size={14} />
-          </div>
-          <input
-            type={type}
-            value={value}
-            onChange={onChange}
-            placeholder={placeholder}
-            className="w-full bg-black/40 border border-zinc-800 rounded-lg pl-9 pr-4 py-3 text-xs text-zinc-200 font-mono outline-none transition-all placeholder:text-zinc-700"
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = focusColor;
-              e.currentTarget.style.boxShadow = `0 0 0 3px ${ringColor}`;
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = "rgba(39,39,42,1)";
-              e.currentTarget.style.boxShadow = "none";
-            }}
-          />
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -291,14 +288,62 @@ export default function CreateICPCContest() {
                 onChange={(e: any) => setName(e.target.value)}
                 placeholder="e.g. World Finals Room 1"
               />
-              <GlowingInput
-                icon={Clock}
-                label="Duration (Seconds)"
-                value={durationSec}
-                onChange={(e: any) => setDurationSec(Number(e.target.value))}
-                placeholder="7200"
-                type="number"
-              />
+              <div className="flex flex-col gap-1.5 w-full">
+                <label className="text-[9px] text-zinc-500 uppercase tracking-[0.2em] font-bold ml-1">
+                  Duration (Seconds)
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
+                    <Clock size={14} />
+                  </div>
+                  <input
+                    type="number"
+                    value={durationSec}
+                    onChange={(e) => setDurationSec(Number(e.target.value))}
+                    placeholder="7200"
+                    min={300}
+                    className="w-full bg-black/40 border border-zinc-800 rounded-lg pl-9 pr-4 py-3 text-xs text-zinc-200 font-mono outline-none transition-all placeholder:text-zinc-700"
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor =
+                        "rgba(251,191,36,0.5)";
+                      e.currentTarget.style.boxShadow =
+                        "0 0 0 3px rgba(251,191,36,0.15)";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(39,39,42,1)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  />
+                </div>
+                <div className="flex gap-2 mt-1">
+                  {[
+                    { label: "1h", val: 3600 },
+                    { label: "2h", val: 7200 },
+                    { label: "3h", val: 10800 },
+                    { label: "5h", val: 18000 },
+                  ].map((opt) => (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      onClick={() => setDurationSec(opt.val)}
+                      className="px-2 py-1 rounded text-[9px] font-bold uppercase tracking-widest border transition-all cursor-pointer"
+                      style={{
+                        borderColor:
+                          durationSec === opt.val
+                            ? "rgba(251,191,36,0.5)"
+                            : "rgba(39,39,42,1)",
+                        color: durationSec === opt.val ? "#fbbf24" : "#52525b",
+                        background:
+                          durationSec === opt.val
+                            ? "rgba(251,191,36,0.08)"
+                            : "transparent",
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="px-8 pb-8 bg-black/20">
@@ -314,7 +359,6 @@ export default function CreateICPCContest() {
                     {fetchedProblems.length} selected
                   </span>
                 </div>
-
                 <div className="flex flex-wrap gap-2 mb-4">
                   <span className="text-[9px] text-zinc-600 uppercase tracking-widest self-center mr-1">
                     Quick pick:
@@ -350,7 +394,6 @@ export default function CreateICPCContest() {
                     </button>
                   ))}
                 </div>
-
                 {fetchedProblems.length > 0 ? (
                   <div className="flex flex-wrap gap-2 mb-3">
                     {fetchedProblems.map((p, i) => (
@@ -403,7 +446,6 @@ export default function CreateICPCContest() {
                     Click a quick pick button to auto-fetch problems →
                   </div>
                 )}
-
                 <div className="relative mt-2">
                   <Code2
                     size={13}
