@@ -127,15 +127,19 @@ export default function Sidebar() {
               {navLink("/contests", "Contest Log")}
               {navLink("/history", "Rating History")}
 
-              <div className="relative group/icpc">
-                <div className="uppercase tracking-widest text-[11px] font-bold border-l-2 pl-4 py-1 flex items-center gap-3 border-transparent text-zinc-600 cursor-not-allowed select-none">
+              <Link
+                href="/team-contests/new"
+                className="relative group/icpc block"
+              >
+                <div
+                  className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-1 flex items-center gap-3 cursor-pointer ${pathname.startsWith("/team-contests") ? "border-emerald-400 text-white" : "border-transparent text-zinc-400 group-hover/icpc:text-zinc-100 hover:border-zinc-700"}`}
+                >
                   <span>3v3 ICPC Battle</span>
-                  <Lock size={12} className="text-zinc-700 mb-0.5" />
+                  <span className="text-[9px] text-amber-500/90 border border-amber-500/30 bg-amber-500/5 px-1.5 py-0.5 rounded uppercase tracking-widest font-bold">
+                    BETA
+                  </span>
                 </div>
-                <div className="absolute left-half ml-3 top-3/2 -translate-y-1/2 z-50 bg-zinc-900 border border-zinc-700 text-zinc-400 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover/icpc:opacity-100 transition-opacity pointer-events-none">
-                  Coming Soon
-                </div>
-              </div>
+              </Link>
             </div>
 
             <div className="space-y-4">
