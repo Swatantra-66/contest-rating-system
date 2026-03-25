@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable react/jsx-key */
 
 import React from "react";
 import {
@@ -14,6 +13,7 @@ import {
   Trophy,
   Code2,
   GitBranch,
+  Users,
 } from "lucide-react";
 import { Orbitron } from "next/font/google";
 
@@ -306,7 +306,7 @@ export default function DocsPage() {
           <SectionHeader
             num="04"
             icon={<Swords size={13} />}
-            title="Duel System"
+            title="1v1 Duel System"
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -394,6 +394,134 @@ export default function DocsPage() {
         <section>
           <SectionHeader
             num="05"
+            icon={<Users size={13} />}
+            title="3v3 ICPC Team Contest"
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p className="text-zinc-500 text-xs font-mono uppercase tracking-widest mb-3">
+                How It Works
+              </p>
+              <div className="rounded-xl border border-zinc-800 overflow-hidden">
+                {[
+                  "Captain creates contest — adds 6 player UUIDs (3 per team)",
+                  "Captain shares lobby URL with all 6 players",
+                  "All players open lobby URL and click I'M READY",
+                  "6/6 ready → auto countdown → duel room opens",
+                  "Each player solves any problem from the shared pool",
+                  "AC submission updates live scoreboard instantly",
+                  "WA submission adds +20 min penalty on future solve",
+                  "Captain finalizes contest when timer ends",
+                ].map((step, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-start gap-4 px-5 py-3.5 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/40"} border-b border-zinc-800/50 last:border-0`}
+                  >
+                    <span className="text-amber-500 font-mono text-[10px] font-bold mt-0.5 w-4 flex-shrink-0">
+                      {i + 1}
+                    </span>
+                    <span className="text-zinc-400 font-mono text-xs leading-relaxed">
+                      {step}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col gap-4">
+              <div>
+                <p className="text-zinc-500 text-xs font-mono uppercase tracking-widest mb-3">
+                  ICPC Scoring
+                </p>
+                <div className="rounded-xl border border-zinc-800 overflow-hidden">
+                  {[
+                    {
+                      label: "Primary sort",
+                      value: "Problems solved (descending)",
+                      color: "text-amber-400",
+                    },
+                    {
+                      label: "Tiebreaker",
+                      value: "Total penalty (ascending)",
+                      color: "text-zinc-300",
+                    },
+                    {
+                      label: "Wrong attempt",
+                      value: "+20 min penalty on AC",
+                      color: "text-rose-400",
+                    },
+                    {
+                      label: "Compile Error",
+                      value: "No penalty",
+                      color: "text-zinc-500",
+                    },
+                    {
+                      label: "Penalty formula",
+                      value: "Solve time + (WA × 20)",
+                      color: "text-zinc-400",
+                    },
+                  ].map(({ label, value, color }, i) => (
+                    <div
+                      key={label}
+                      className={`flex items-center justify-between px-5 py-3.5 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/40"} border-b border-zinc-800/50 last:border-0`}
+                    >
+                      <span className="text-zinc-500 font-mono text-xs">
+                        {label}
+                      </span>
+                      <span className={`font-mono text-xs ${color}`}>
+                        {value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-zinc-500 text-xs font-mono uppercase tracking-widest mb-3">
+                  Pages
+                </p>
+                <div className="rounded-xl border border-zinc-800 overflow-hidden">
+                  {[
+                    {
+                      label: "/team-contests/new",
+                      value: "Create contest",
+                      color: "text-amber-400",
+                    },
+                    {
+                      label: "/team-contests/:id",
+                      value: "Dashboard + scoreboard",
+                      color: "text-zinc-300",
+                    },
+                    {
+                      label: "/team-contests/:id/lobby",
+                      value: "Waiting room",
+                      color: "text-indigo-400",
+                    },
+                    {
+                      label: "/team-contests/:id/duel",
+                      value: "Code editor + live score",
+                      color: "text-emerald-400",
+                    },
+                  ].map(({ label, value, color }, i) => (
+                    <div
+                      key={label}
+                      className={`flex items-center justify-between px-5 py-3.5 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/40"} border-b border-zinc-800/50 last:border-0`}
+                    >
+                      <span className={`font-mono text-[10px] ${color}`}>
+                        {label}
+                      </span>
+                      <span className="font-mono text-xs text-zinc-500">
+                        {value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <SectionHeader
+            num="06"
             icon={<Code2 size={13} />}
             title="Supported Languages"
           />
@@ -432,17 +560,41 @@ export default function DocsPage() {
           </div>
         </section>
 
+        {/* 07 - WebSocket */}
         <section>
           <SectionHeader
-            num="06"
+            num="07"
             icon={<Network size={13} />}
             title="WebSocket Protocol"
           />
-          <Table
-            headers={["Message Type", "Direction", "Description"]}
-            rows={[
-              ["join", "Client → Server", "Register presence on connect"].map(
-                (v, i) => (
+          <div className="space-y-4">
+            <p className="text-zinc-500 text-xs font-mono uppercase tracking-widest">
+              1v1 Duel Events
+            </p>
+            <Table
+              headers={["Message Type", "Direction", "Description"]}
+              rows={[
+                ["join", "Client → Server", "Register presence on connect"].map(
+                  (v, i) => (
+                    <span
+                      key={i}
+                      className={
+                        i === 0
+                          ? "text-indigo-400 font-bold"
+                          : i === 1
+                            ? "text-zinc-500"
+                            : "text-zinc-400"
+                      }
+                    >
+                      {v}
+                    </span>
+                  ),
+                ),
+                [
+                  "online_users",
+                  "Server → All",
+                  "Broadcast connected user list",
+                ].map((v, i) => (
                   <span
                     key={i}
                     className={
@@ -455,136 +607,136 @@ export default function DocsPage() {
                   >
                     {v}
                   </span>
+                )),
+                [
+                  "challenge",
+                  "Client → Server",
+                  "Send duel challenge with difficulty + mode",
+                ].map((v, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i === 0
+                        ? "text-indigo-400 font-bold"
+                        : i === 1
+                          ? "text-zinc-500"
+                          : "text-zinc-400"
+                    }
+                  >
+                    {v}
+                  </span>
+                )),
+                [
+                  "challenge_received",
+                  "Server → Client",
+                  "Notify target of incoming challenge",
+                ].map((v, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i === 0
+                        ? "text-indigo-400 font-bold"
+                        : i === 1
+                          ? "text-zinc-500"
+                          : "text-zinc-400"
+                    }
+                  >
+                    {v}
+                  </span>
+                )),
+                [
+                  "challenge_response",
+                  "Client → Server",
+                  "Accept or decline a challenge",
+                ].map((v, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i === 0
+                        ? "text-indigo-400 font-bold"
+                        : i === 1
+                          ? "text-zinc-500"
+                          : "text-zinc-400"
+                    }
+                  >
+                    {v}
+                  </span>
+                )),
+                [
+                  "ready",
+                  "Client → Server",
+                  "Signal ready state in duel room",
+                ].map((v, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i === 0
+                        ? "text-indigo-400 font-bold"
+                        : i === 1
+                          ? "text-zinc-500"
+                          : "text-zinc-400"
+                    }
+                  >
+                    {v}
+                  </span>
+                )),
+                [
+                  "ready_update",
+                  "Server → All",
+                  "Broadcast ready count for contest",
+                ].map((v, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i === 0
+                        ? "text-indigo-400 font-bold"
+                        : i === 1
+                          ? "text-zinc-500"
+                          : "text-zinc-400"
+                    }
+                  >
+                    {v}
+                  </span>
+                )),
+                [
+                  "duel_start",
+                  "Server → All",
+                  "Both ready — start countdown",
+                ].map((v, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i === 0
+                        ? "text-indigo-400 font-bold"
+                        : i === 1
+                          ? "text-zinc-500"
+                          : "text-zinc-400"
+                    }
+                  >
+                    {v}
+                  </span>
+                )),
+                ["won", "Client → Server", "Notify opponent of win"].map(
+                  (v, i) => (
+                    <span
+                      key={i}
+                      className={
+                        i === 0
+                          ? "text-emerald-400 font-bold"
+                          : i === 1
+                            ? "text-zinc-500"
+                            : "text-zinc-400"
+                      }
+                    >
+                      {v}
+                    </span>
+                  ),
                 ),
-              ),
-              [
-                "online_users",
-                "Server → All",
-                "Broadcast connected user list",
-              ].map((v, i) => (
-                <span
-                  key={i}
-                  className={
-                    i === 0
-                      ? "text-indigo-400 font-bold"
-                      : i === 1
-                        ? "text-zinc-500"
-                        : "text-zinc-400"
-                  }
-                >
-                  {v}
-                </span>
-              )),
-              [
-                "challenge",
-                "Client → Server",
-                "Send duel challenge with difficulty + mode",
-              ].map((v, i) => (
-                <span
-                  key={i}
-                  className={
-                    i === 0
-                      ? "text-indigo-400 font-bold"
-                      : i === 1
-                        ? "text-zinc-500"
-                        : "text-zinc-400"
-                  }
-                >
-                  {v}
-                </span>
-              )),
-              [
-                "challenge_received",
-                "Server → Client",
-                "Notify target of incoming challenge",
-              ].map((v, i) => (
-                <span
-                  key={i}
-                  className={
-                    i === 0
-                      ? "text-indigo-400 font-bold"
-                      : i === 1
-                        ? "text-zinc-500"
-                        : "text-zinc-400"
-                  }
-                >
-                  {v}
-                </span>
-              )),
-              [
-                "challenge_response",
-                "Client → Server",
-                "Accept or decline a challenge",
-              ].map((v, i) => (
-                <span
-                  key={i}
-                  className={
-                    i === 0
-                      ? "text-indigo-400 font-bold"
-                      : i === 1
-                        ? "text-zinc-500"
-                        : "text-zinc-400"
-                  }
-                >
-                  {v}
-                </span>
-              )),
-              [
-                "ready",
-                "Client → Server",
-                "Signal ready state in duel room",
-              ].map((v, i) => (
-                <span
-                  key={i}
-                  className={
-                    i === 0
-                      ? "text-indigo-400 font-bold"
-                      : i === 1
-                        ? "text-zinc-500"
-                        : "text-zinc-400"
-                  }
-                >
-                  {v}
-                </span>
-              )),
-              [
-                "ready_update",
-                "Server → All",
-                "Broadcast ready count for contest",
-              ].map((v, i) => (
-                <span
-                  key={i}
-                  className={
-                    i === 0
-                      ? "text-indigo-400 font-bold"
-                      : i === 1
-                        ? "text-zinc-500"
-                        : "text-zinc-400"
-                  }
-                >
-                  {v}
-                </span>
-              )),
-              [
-                "duel_start",
-                "Server → All",
-                "Both ready — start countdown",
-              ].map((v, i) => (
-                <span
-                  key={i}
-                  className={
-                    i === 0
-                      ? "text-indigo-400 font-bold"
-                      : i === 1
-                        ? "text-zinc-500"
-                        : "text-zinc-400"
-                  }
-                >
-                  {v}
-                </span>
-              )),
-              ["won", "Client → Server", "Notify opponent of win"].map(
-                (v, i) => (
+                [
+                  "opponent_won",
+                  "Server → Client",
+                  "Tell loser opponent has won",
+                ].map((v, i) => (
                   <span
                     key={i}
                     className={
@@ -597,28 +749,28 @@ export default function DocsPage() {
                   >
                     {v}
                   </span>
+                )),
+                ["leave", "Client → Server", "Player leaves mid-duel"].map(
+                  (v, i) => (
+                    <span
+                      key={i}
+                      className={
+                        i === 0
+                          ? "text-rose-400 font-bold"
+                          : i === 1
+                            ? "text-zinc-500"
+                            : "text-zinc-400"
+                      }
+                    >
+                      {v}
+                    </span>
+                  ),
                 ),
-              ),
-              [
-                "opponent_won",
-                "Server → Client",
-                "Tell loser opponent has won",
-              ].map((v, i) => (
-                <span
-                  key={i}
-                  className={
-                    i === 0
-                      ? "text-emerald-400 font-bold"
-                      : i === 1
-                        ? "text-zinc-500"
-                        : "text-zinc-400"
-                  }
-                >
-                  {v}
-                </span>
-              )),
-              ["leave", "Client → Server", "Player leaves mid-duel"].map(
-                (v, i) => (
+                [
+                  "opponent_left",
+                  "Server → Client",
+                  "Notify remaining player of forfeit",
+                ].map((v, i) => (
                   <span
                     key={i}
                     className={
@@ -631,126 +783,351 @@ export default function DocsPage() {
                   >
                     {v}
                   </span>
+                )),
+              ]}
+            />
+            <p className="text-zinc-500 text-xs font-mono uppercase tracking-widest pt-2">
+              3v3 ICPC Events
+            </p>
+            <Table
+              headers={["Message Type", "Direction", "Description"]}
+              rows={[
+                ["team_join", "Client → Server", "Player joins team lobby"].map(
+                  (v, i) => (
+                    <span
+                      key={i}
+                      className={
+                        i === 0
+                          ? "text-amber-400 font-bold"
+                          : i === 1
+                            ? "text-zinc-500"
+                            : "text-zinc-400"
+                      }
+                    >
+                      {v}
+                    </span>
+                  ),
                 ),
-              ),
-              [
-                "opponent_left",
-                "Server → Client",
-                "Notify remaining player of forfeit",
-              ].map((v, i) => (
-                <span
-                  key={i}
-                  className={
-                    i === 0
-                      ? "text-rose-400 font-bold"
-                      : i === 1
-                        ? "text-zinc-500"
-                        : "text-zinc-400"
-                  }
-                >
-                  {v}
-                </span>
-              )),
-            ]}
-          />
+                [
+                  "team_member_joined",
+                  "Server → Room",
+                  "Broadcast new player to lobby",
+                ].map((v, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i === 0
+                        ? "text-amber-400 font-bold"
+                        : i === 1
+                          ? "text-zinc-500"
+                          : "text-zinc-400"
+                    }
+                  >
+                    {v}
+                  </span>
+                )),
+                [
+                  "team_ready",
+                  "Client → Server",
+                  "Player clicks I'M READY",
+                ].map((v, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i === 0
+                        ? "text-amber-400 font-bold"
+                        : i === 1
+                          ? "text-zinc-500"
+                          : "text-zinc-400"
+                    }
+                  >
+                    {v}
+                  </span>
+                )),
+                [
+                  "team_ready_update",
+                  "Server → Room",
+                  "Broadcast ready count (x/6)",
+                ].map((v, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i === 0
+                        ? "text-amber-400 font-bold"
+                        : i === 1
+                          ? "text-zinc-500"
+                          : "text-zinc-400"
+                    }
+                  >
+                    {v}
+                  </span>
+                )),
+                [
+                  "team_start",
+                  "Server → Room",
+                  "6/6 ready — redirect to duel room",
+                ].map((v, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i === 0
+                        ? "text-emerald-400 font-bold"
+                        : i === 1
+                          ? "text-zinc-500"
+                          : "text-zinc-400"
+                    }
+                  >
+                    {v}
+                  </span>
+                )),
+                [
+                  "team_solved",
+                  "Client → Server",
+                  "Submit AC/WA verdict after judge",
+                ].map((v, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i === 0
+                        ? "text-amber-400 font-bold"
+                        : i === 1
+                          ? "text-zinc-500"
+                          : "text-zinc-400"
+                    }
+                  >
+                    {v}
+                  </span>
+                )),
+                [
+                  "team_verdict",
+                  "Server → Room",
+                  "Broadcast verdict + update scoreboard",
+                ].map((v, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i === 0
+                        ? "text-amber-400 font-bold"
+                        : i === 1
+                          ? "text-zinc-500"
+                          : "text-zinc-400"
+                    }
+                  >
+                    {v}
+                  </span>
+                )),
+                [
+                  "team_leave",
+                  "Client → Server",
+                  "Player leaves team lobby",
+                ].map((v, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i === 0
+                        ? "text-rose-400 font-bold"
+                        : i === 1
+                          ? "text-zinc-500"
+                          : "text-zinc-400"
+                    }
+                  >
+                    {v}
+                  </span>
+                )),
+                [
+                  "team_member_left",
+                  "Server → Room",
+                  "Notify room of player departure",
+                ].map((v, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i === 0
+                        ? "text-rose-400 font-bold"
+                        : i === 1
+                          ? "text-zinc-500"
+                          : "text-zinc-400"
+                    }
+                  >
+                    {v}
+                  </span>
+                )),
+              ]}
+            />
+          </div>
         </section>
 
         <section>
           <SectionHeader
-            num="07"
+            num="08"
             icon={<GitBranch size={13} />}
             title="API Endpoints"
           />
-          <Table
-            headers={["Method", "Endpoint", "Description"]}
-            rows={[
-              [
-                <MethodBadge method="GET" />,
-                <span className="text-zinc-300">/api/users</span>,
-                <span className="text-zinc-500">
-                  All users sorted by rating
-                </span>,
-              ],
-              [
-                <MethodBadge method="GET" />,
-                <span className="text-zinc-300">/api/users/:id</span>,
-                <span className="text-zinc-500">Single user profile</span>,
-              ],
-              [
-                <MethodBadge method="GET" />,
-                <span className="text-zinc-300">/api/users/:id/history</span>,
-                <span className="text-zinc-500">User rating history</span>,
-              ],
-              [
-                <MethodBadge method="POST" />,
-                <span className="text-zinc-300">/api/users</span>,
-                <span className="text-zinc-500">Create new user node</span>,
-              ],
-              [
-                <MethodBadge method="GET" />,
-                <span className="text-zinc-300">/api/contests</span>,
-                <span className="text-zinc-500">All contest logs</span>,
-              ],
-              [
-                <MethodBadge method="GET" />,
-                <span className="text-zinc-300">/api/contests/:id</span>,
-                <span className="text-zinc-500">Single contest detail</span>,
-              ],
-              [
-                <MethodBadge method="POST" />,
-                <span className="text-zinc-300">/api/contests</span>,
-                <span className="text-zinc-500">Create new contest</span>,
-              ],
-              [
-                <MethodBadge method="POST" />,
-                <span className="text-zinc-300">
-                  /api/contests/:id/finalize
-                </span>,
-                <span className="text-zinc-500">
-                  Finalize and update ratings
-                </span>,
-              ],
-              [
-                <MethodBadge method="DELETE" />,
-                <span className="text-zinc-300">/api/contests/:id</span>,
-                <span className="text-zinc-500">
-                  Delete contest (admin only)
-                </span>,
-              ],
-              [
-                <MethodBadge method="GET" />,
-                <span className="text-zinc-300">
-                  /api/problems/random?difficulty=
-                </span>,
-                <span className="text-zinc-500">Random LeetCode problem</span>,
-              ],
-              [
-                <MethodBadge method="GET" />,
-                <span className="text-zinc-300">/api/stats</span>,
-                <span className="text-zinc-500">
-                  System stats + live node count
-                </span>,
-              ],
-              [
-                <MethodBadge method="GET" />,
-                <span className="text-zinc-300">/api/health</span>,
-                <span className="text-zinc-500">Backend health check</span>,
-              ],
-              [
-                <MethodBadge method="WS" />,
-                <span className="text-zinc-300">/api/ws</span>,
-                <span className="text-zinc-500">
-                  WebSocket connection endpoint
-                </span>,
-              ],
-            ]}
-          />
+          <div className="space-y-4">
+            <p className="text-zinc-500 text-xs font-mono uppercase tracking-widest">
+              1v1 Duel
+            </p>
+            <Table
+              headers={["Method", "Endpoint", "Description"]}
+              rows={[
+                [
+                  <MethodBadge method="GET" />,
+                  <span className="text-zinc-300">/api/users</span>,
+                  <span className="text-zinc-500">
+                    All users sorted by rating
+                  </span>,
+                ],
+                [
+                  <MethodBadge method="GET" />,
+                  <span className="text-zinc-300">/api/users/:id</span>,
+                  <span className="text-zinc-500">Single user profile</span>,
+                ],
+                [
+                  <MethodBadge method="GET" />,
+                  <span className="text-zinc-300">/api/users/:id/history</span>,
+                  <span className="text-zinc-500">User rating history</span>,
+                ],
+                [
+                  <MethodBadge method="POST" />,
+                  <span className="text-zinc-300">/api/users</span>,
+                  <span className="text-zinc-500">Create new user node</span>,
+                ],
+                [
+                  <MethodBadge method="GET" />,
+                  <span className="text-zinc-300">/api/contests</span>,
+                  <span className="text-zinc-500">All contest logs</span>,
+                ],
+                [
+                  <MethodBadge method="POST" />,
+                  <span className="text-zinc-300">/api/contests</span>,
+                  <span className="text-zinc-500">Create new contest</span>,
+                ],
+                [
+                  <MethodBadge method="POST" />,
+                  <span className="text-zinc-300">
+                    /api/contests/:id/finalize
+                  </span>,
+                  <span className="text-zinc-500">
+                    Finalize and update ratings
+                  </span>,
+                ],
+                [
+                  <MethodBadge method="DELETE" />,
+                  <span className="text-zinc-300">/api/contests/:id</span>,
+                  <span className="text-zinc-500">
+                    Delete contest (admin only)
+                  </span>,
+                ],
+                [
+                  <MethodBadge method="GET" />,
+                  <span className="text-zinc-300">
+                    /api/problems/random?difficulty=
+                  </span>,
+                  <span className="text-zinc-500">
+                    Random LeetCode problem
+                  </span>,
+                ],
+                [
+                  <MethodBadge method="GET" />,
+                  <span className="text-zinc-300">/api/problems/:slug</span>,
+                  <span className="text-zinc-500">Problem by slug</span>,
+                ],
+                [
+                  <MethodBadge method="POST" />,
+                  <span className="text-zinc-300">/api/submit-judge</span>,
+                  <span className="text-zinc-500">Submit code to Judge0</span>,
+                ],
+                [
+                  <MethodBadge method="GET" />,
+                  <span className="text-zinc-300">/api/stats</span>,
+                  <span className="text-zinc-500">
+                    System stats + live node count
+                  </span>,
+                ],
+                [
+                  <MethodBadge method="GET" />,
+                  <span className="text-zinc-300">/api/health</span>,
+                  <span className="text-zinc-500">Backend health check</span>,
+                ],
+                [
+                  <MethodBadge method="WS" />,
+                  <span className="text-zinc-300">/api/ws</span>,
+                  <span className="text-zinc-500">
+                    WebSocket connection endpoint
+                  </span>,
+                ],
+              ]}
+            />
+            <p className="text-zinc-500 text-xs font-mono uppercase tracking-widest pt-2">
+              3v3 ICPC
+            </p>
+            <Table
+              headers={["Method", "Endpoint", "Description"]}
+              rows={[
+                [
+                  <MethodBadge method="POST" />,
+                  <span className="text-zinc-300">/api/team-contests</span>,
+                  <span className="text-zinc-500">Create 3v3 contest</span>,
+                ],
+                [
+                  <MethodBadge method="GET" />,
+                  <span className="text-zinc-300">/api/team-contests/:id</span>,
+                  <span className="text-zinc-500">
+                    Contest details + roster
+                  </span>,
+                ],
+                [
+                  <MethodBadge method="GET" />,
+                  <span className="text-zinc-300">
+                    /api/team-contests/:id/my-team
+                  </span>,
+                  <span className="text-zinc-500">
+                    Current user's team info
+                  </span>,
+                ],
+                [
+                  <MethodBadge method="GET" />,
+                  <span className="text-zinc-300">
+                    /api/team-contests/:id/scoreboard
+                  </span>,
+                  <span className="text-zinc-500">Live ICPC scoreboard</span>,
+                ],
+                [
+                  <MethodBadge method="POST" />,
+                  <span className="text-zinc-300">
+                    /api/team-contests/:id/submissions
+                  </span>,
+                  <span className="text-zinc-500">
+                    Submit verdict manually
+                  </span>,
+                ],
+                [
+                  <MethodBadge method="POST" />,
+                  <span className="text-zinc-300">
+                    /api/team-contests/:id/start
+                  </span>,
+                  <span className="text-zinc-500">
+                    Update started_at on match start
+                  </span>,
+                ],
+                [
+                  <MethodBadge method="POST" />,
+                  <span className="text-zinc-300">
+                    /api/team-contests/:id/finalize
+                  </span>,
+                  <span className="text-zinc-500">
+                    Lock contest permanently
+                  </span>,
+                ],
+              ]}
+            />
+          </div>
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <SectionHeader
-              num="08"
+              num="09"
               icon={<Terminal size={13} />}
               title="Technology Stack"
             />
@@ -816,7 +1193,7 @@ export default function DocsPage() {
           </div>
           <div>
             <SectionHeader
-              num="09"
+              num="10"
               icon={<Database size={13} />}
               title="Database Schemas"
             />
@@ -857,6 +1234,37 @@ export default function DocsPage() {
                     "rating_change",
                   ],
                 },
+                {
+                  name: "TeamContests",
+                  fields: [
+                    "id",
+                    "name",
+                    "mode",
+                    "team_size",
+                    "duration_sec",
+                    "started_at",
+                    "finalized",
+                  ],
+                },
+                {
+                  name: "TeamContestTeams",
+                  fields: ["id", "contest_id", "team_name", "team_number"],
+                },
+                {
+                  name: "TeamContestMembers",
+                  fields: ["id", "team_id", "user_id", "is_captain"],
+                },
+                {
+                  name: "TeamContestSubmissions",
+                  fields: [
+                    "id",
+                    "contest_id",
+                    "team_id",
+                    "problem_slug",
+                    "verdict",
+                    "submitted_at",
+                  ],
+                },
               ].map(({ name, fields }) => (
                 <div
                   key={name}
@@ -883,9 +1291,10 @@ export default function DocsPage() {
           </div>
         </section>
 
+        {/* 11 - Security */}
         <section>
           <SectionHeader
-            num="10"
+            num="11"
             icon={<Shield size={13} />}
             title="Security"
           />
