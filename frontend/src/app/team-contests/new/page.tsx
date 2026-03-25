@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { Orbitron } from "next/font/google";
 import Link from "next/link";
 import {
@@ -16,6 +17,8 @@ import {
   Swords,
   Loader2,
   RefreshCw,
+  Mail,
+  Hourglass,
 } from "lucide-react";
 
 const orbitron = Orbitron({ subsets: ["latin"], weight: ["700", "900"] });
@@ -54,6 +57,7 @@ function GlowingInput({
   placeholder,
   type = "text",
   color = "amber",
+  disabled = false,
 }: any) {
   return (
     <div className="flex flex-col gap-1.5 w-full">
@@ -69,14 +73,21 @@ function GlowingInput({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          className="w-full bg-black/40 border border-zinc-800 rounded-lg pl-9 pr-4 py-3 text-xs text-zinc-200 font-mono outline-none transition-all placeholder:text-zinc-700"
+          disabled={disabled}
+          className={`w-full bg-black/40 border border-zinc-800 rounded-lg pl-9 pr-4 py-3 text-xs text-zinc-200 font-mono outline-none transition-all placeholder:text-zinc-700 ${
+            disabled ? "opacity-50 cursor-not-allowed" : ""
+          }`}
           onFocus={(e) => {
-            e.currentTarget.style.borderColor = focusColor(color);
-            e.currentTarget.style.boxShadow = `0 0 0 3px ${ringColor(color)}`;
+            if (!disabled) {
+              e.currentTarget.style.borderColor = focusColor(color);
+              e.currentTarget.style.boxShadow = `0 0 0 3px ${ringColor(color)}`;
+            }
           }}
           onBlur={(e) => {
-            e.currentTarget.style.borderColor = "rgba(39,39,42,1)";
-            e.currentTarget.style.boxShadow = "none";
+            if (!disabled) {
+              e.currentTarget.style.borderColor = "rgba(39,39,42,1)";
+              e.currentTarget.style.boxShadow = "none";
+            }
           }}
         />
       </div>
@@ -86,6 +97,13 @@ function GlowingInput({
 
 export default function CreateICPCContest() {
   const router = useRouter();
+
+  const { user, isLoaded } = useUser();
+  const isAdmin = user?.publicMetadata?.role === "admin";
+  const myNodeId =
+    typeof window !== "undefined"
+      ? localStorage.getItem("elonode_db_id") || ""
+      : "";
 
   const [name, setName] = useState("ICPC 3v3 Room");
   const [durationSec, setDurationSec] = useState(7200);
@@ -107,6 +125,31 @@ export default function CreateICPCContest() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const [deployStatus, setDeployStatus] = useState<"waiting" | "deployed">(
+    "waiting",
+  );
+
+  useEffect(() => {
+    if (isAdmin || !myNodeId) return;
+
+    const checkDeployment = async () => {
+      try {
+        const res = await fetch(
+          `${API}team-contests/latest?user_id=${myNodeId}`,
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.id) {
+            setDeployStatus("deployed");
+          }
+        }
+      } catch (err) {}
+    };
+
+    const intervalId = setInterval(checkDeployment, 5000);
+    return () => clearInterval(intervalId);
+  }, [isAdmin, myNodeId]);
+
   const setMember = (which: "a" | "b", idx: number, value: string) => {
     const updater = which === "a" ? setTeamA : setTeamB;
     updater((prev) => {
@@ -117,6 +160,7 @@ export default function CreateICPCContest() {
   };
 
   const fetchRandomProblems = async (count: number, difficulty?: string) => {
+    if (!isAdmin) return;
     setFetchingProblems(true);
     setError("");
     const difficulties = difficulty
@@ -156,6 +200,7 @@ export default function CreateICPCContest() {
   };
 
   const removeSlug = (slug: string) => {
+    if (!isAdmin) return;
     const updated = fetchedProblems.filter((p) => p.slug !== slug);
     setFetchedProblems(updated);
     setProblemSlugs(updated.map((p) => p.slug).join(","));
@@ -163,6 +208,7 @@ export default function CreateICPCContest() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) return;
     setError("");
     setSubmitting(true);
     try {
@@ -209,6 +255,8 @@ export default function CreateICPCContest() {
     }
   };
 
+  if (!isLoaded) return <div className="min-h-screen bg-[#05060b]"></div>;
+
   return (
     <div
       className="min-h-screen relative w-full flex flex-col items-center pt-8 pb-24 px-6"
@@ -252,6 +300,7 @@ export default function CreateICPCContest() {
               overflow: "hidden",
               boxShadow:
                 "0 20px 70px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04)",
+              opacity: isAdmin ? 1 : 0.8,
             }}
           >
             <div className="p-8 border-b border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -287,6 +336,7 @@ export default function CreateICPCContest() {
                 value={name}
                 onChange={(e: any) => setName(e.target.value)}
                 placeholder="e.g. World Finals Room 1"
+                disabled={!isAdmin}
               />
               <div className="flex flex-col gap-1.5 w-full">
                 <label className="text-[9px] text-zinc-500 uppercase tracking-[0.2em] font-bold ml-1">
@@ -302,16 +352,23 @@ export default function CreateICPCContest() {
                     onChange={(e) => setDurationSec(Number(e.target.value))}
                     placeholder="7200"
                     min={300}
-                    className="w-full bg-black/40 border border-zinc-800 rounded-lg pl-9 pr-4 py-3 text-xs text-zinc-200 font-mono outline-none transition-all placeholder:text-zinc-700"
+                    disabled={!isAdmin}
+                    className={`w-full bg-black/40 border border-zinc-800 rounded-lg pl-9 pr-4 py-3 text-xs text-zinc-200 font-mono outline-none transition-all placeholder:text-zinc-700 ${
+                      !isAdmin ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                     onFocus={(e) => {
-                      e.currentTarget.style.borderColor =
-                        "rgba(251,191,36,0.5)";
-                      e.currentTarget.style.boxShadow =
-                        "0 0 0 3px rgba(251,191,36,0.15)";
+                      if (isAdmin) {
+                        e.currentTarget.style.borderColor =
+                          "rgba(251,191,36,0.5)";
+                        e.currentTarget.style.boxShadow =
+                          "0 0 0 3px rgba(251,191,36,0.15)";
+                      }
                     }}
                     onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(39,39,42,1)";
-                      e.currentTarget.style.boxShadow = "none";
+                      if (isAdmin) {
+                        e.currentTarget.style.borderColor = "rgba(39,39,42,1)";
+                        e.currentTarget.style.boxShadow = "none";
+                      }
                     }}
                   />
                 </div>
@@ -325,8 +382,13 @@ export default function CreateICPCContest() {
                     <button
                       key={opt.label}
                       type="button"
+                      disabled={!isAdmin}
                       onClick={() => setDurationSec(opt.val)}
-                      className="px-2 py-1 rounded text-[9px] font-bold uppercase tracking-widest border transition-all cursor-pointer"
+                      className={`px-2 py-1 rounded text-[9px] font-bold uppercase tracking-widest border transition-all ${
+                        isAdmin
+                          ? "cursor-pointer"
+                          : "cursor-not-allowed opacity-50"
+                      }`}
                       style={{
                         borderColor:
                           durationSec === opt.val
@@ -374,8 +436,12 @@ export default function CreateICPCContest() {
                       key={opt.label}
                       type="button"
                       onClick={() => fetchRandomProblems(opt.count, opt.diff)}
-                      disabled={fetchingProblems}
-                      className="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all disabled:opacity-40 cursor-pointer"
+                      disabled={fetchingProblems || !isAdmin}
+                      className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all ${
+                        fetchingProblems || !isAdmin
+                          ? "opacity-40 cursor-not-allowed"
+                          : "cursor-pointer"
+                      }`}
                       style={{
                         borderColor: opt.diff
                           ? `${DIFF_COLORS[opt.diff]}40`
@@ -431,13 +497,15 @@ export default function CreateICPCContest() {
                         >
                           {p.difficulty}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => removeSlug(p.slug)}
-                          className="text-zinc-600 hover:text-rose-400 transition-colors ml-1 cursor-pointer"
-                        >
-                          ✕
-                        </button>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => removeSlug(p.slug)}
+                            className="text-zinc-600 hover:text-rose-400 transition-colors ml-1 cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -455,13 +523,18 @@ export default function CreateICPCContest() {
                     value={problemSlugs}
                     onChange={(e) => setProblemSlugs(e.target.value)}
                     placeholder="or type slugs manually: two-sum, valid-parentheses"
-                    className="w-full bg-black/40 border border-zinc-800 rounded-lg pl-9 pr-4 py-2.5 text-xs text-zinc-400 font-mono outline-none transition-all placeholder:text-zinc-700"
+                    disabled={!isAdmin}
+                    className={`w-full bg-black/40 border border-zinc-800 rounded-lg pl-9 pr-4 py-2.5 text-xs text-zinc-400 font-mono outline-none transition-all placeholder:text-zinc-700 ${
+                      !isAdmin ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                     onFocus={(e) => {
-                      e.currentTarget.style.borderColor =
-                        "rgba(251,191,36,0.4)";
+                      if (isAdmin)
+                        e.currentTarget.style.borderColor =
+                          "rgba(251,191,36,0.4)";
                     }}
                     onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(39,39,42,1)";
+                      if (isAdmin)
+                        e.currentTarget.style.borderColor = "rgba(39,39,42,1)";
                     }}
                   />
                 </div>
@@ -490,6 +563,7 @@ export default function CreateICPCContest() {
                 display: "flex",
                 flexDirection: "column",
                 gap: 16,
+                opacity: isAdmin ? 1 : 0.8,
               }}
             >
               <div className="flex items-center justify-between border-b border-indigo-500/10 pb-4 mb-2">
@@ -500,7 +574,10 @@ export default function CreateICPCContest() {
                     onChange={(e) =>
                       setTeamA({ ...teamA, team_name: e.target.value })
                     }
-                    className={`${orbitron.className} bg-transparent text-lg font-black text-indigo-400 uppercase tracking-wide outline-none w-full placeholder:text-indigo-900/50`}
+                    disabled={!isAdmin}
+                    className={`${orbitron.className} bg-transparent text-lg font-black text-indigo-400 uppercase tracking-wide outline-none w-full placeholder:text-indigo-900/50 ${
+                      !isAdmin ? "cursor-not-allowed" : ""
+                    }`}
                     placeholder="TEAM ALPHA NAME"
                   />
                 </div>
@@ -513,6 +590,7 @@ export default function CreateICPCContest() {
                   label={`Node ${idx + 1} UUID`}
                   placeholder={`Member ${idx + 1} User ID`}
                   value={teamA.member_ids[idx]}
+                  disabled={!isAdmin}
                   onChange={(e: any) => setMember("a", idx, e.target.value)}
                 />
               ))}
@@ -523,6 +601,7 @@ export default function CreateICPCContest() {
                   label="Captain UUID (Must match a node above)"
                   placeholder="Captain User ID"
                   value={teamA.captain_id}
+                  disabled={!isAdmin}
                   onChange={(e: any) =>
                     setTeamA({ ...teamA, captain_id: e.target.value })
                   }
@@ -542,6 +621,7 @@ export default function CreateICPCContest() {
                 display: "flex",
                 flexDirection: "column",
                 gap: 16,
+                opacity: isAdmin ? 1 : 0.8,
               }}
             >
               <div className="flex items-center justify-between border-b border-rose-500/10 pb-4 mb-2">
@@ -552,7 +632,10 @@ export default function CreateICPCContest() {
                     onChange={(e) =>
                       setTeamB({ ...teamB, team_name: e.target.value })
                     }
-                    className={`${orbitron.className} bg-transparent text-lg font-black text-rose-400 uppercase tracking-wide outline-none w-full placeholder:text-rose-900/50`}
+                    disabled={!isAdmin}
+                    className={`${orbitron.className} bg-transparent text-lg font-black text-rose-400 uppercase tracking-wide outline-none w-full placeholder:text-rose-900/50 ${
+                      !isAdmin ? "cursor-not-allowed" : ""
+                    }`}
                     placeholder="TEAM BETA NAME"
                   />
                 </div>
@@ -565,6 +648,7 @@ export default function CreateICPCContest() {
                   label={`Node ${idx + 1} UUID`}
                   placeholder={`Member ${idx + 1} User ID`}
                   value={teamB.member_ids[idx]}
+                  disabled={!isAdmin}
                   onChange={(e: any) => setMember("b", idx, e.target.value)}
                 />
               ))}
@@ -575,6 +659,7 @@ export default function CreateICPCContest() {
                   label="Captain UUID (Must match a node above)"
                   placeholder="Captain User ID"
                   value={teamB.captain_id}
+                  disabled={!isAdmin}
                   onChange={(e: any) =>
                     setTeamB({ ...teamB, captain_id: e.target.value })
                   }
@@ -583,28 +668,35 @@ export default function CreateICPCContest() {
             </div>
           </div>
 
-          <div className="flex justify-center mt-12 mb-8">
+          <div className="flex flex-col items-center mt-12 mb-8 gap-6">
             <button
               type="submit"
-              disabled={submitting}
-              className="flex flex-col items-center justify-center gap-1.5 w-28 h-28 rounded-full text-zinc-950 font-mono text-[10px] font-black uppercase tracking-widest border-[3px] border-zinc-950 cursor-pointer transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed group"
+              disabled={submitting || !isAdmin}
+              className="flex flex-col items-center justify-center gap-1.5 w-28 h-28 rounded-full text-zinc-950 font-mono text-[10px] font-black uppercase tracking-widest border-[3px] border-zinc-950 transition-all duration-300 group"
               style={{
-                background: submitting
-                  ? "rgba(245,158,11,0.5)"
-                  : "linear-gradient(135deg, #f59e0b, #fbbf24)",
-                boxShadow: submitting
-                  ? "none"
-                  : "0 0 20px rgba(245,158,11,0.2)",
+                background:
+                  !isAdmin || submitting
+                    ? "rgba(245,158,11,0.3)"
+                    : "linear-gradient(135deg, #f59e0b, #fbbf24)",
+                boxShadow:
+                  !isAdmin || submitting
+                    ? "none"
+                    : "0 0 20px rgba(245,158,11,0.2)",
+                cursor: !isAdmin
+                  ? "not-allowed"
+                  : submitting
+                    ? "wait"
+                    : "pointer",
               }}
               onMouseEnter={(e) => {
-                if (!submitting) {
+                if (!submitting && isAdmin) {
                   e.currentTarget.style.transform = "scale(1.05)";
                   e.currentTarget.style.boxShadow =
                     "0 0 30px rgba(245,158,11,0.4)";
                 }
               }}
               onMouseLeave={(e) => {
-                if (!submitting) {
+                if (!submitting && isAdmin) {
                   e.currentTarget.style.transform = "scale(1)";
                   e.currentTarget.style.boxShadow =
                     "0 0 20px rgba(245,158,11,0.2)";
@@ -623,6 +715,18 @@ export default function CreateICPCContest() {
                     Lobby
                   </span>
                 </>
+              ) : !isAdmin ? (
+                <>
+                  <Shield
+                    size={24}
+                    className="text-zinc-900 drop-shadow-sm mb-1 opacity-70"
+                  />
+                  <span className="leading-tight text-center opacity-70">
+                    Host
+                    <br />
+                    Only
+                  </span>
+                </>
               ) : (
                 <>
                   <Swords
@@ -637,6 +741,46 @@ export default function CreateICPCContest() {
                 </>
               )}
             </button>
+
+            {!isAdmin && (
+              <div
+                className={`w-full max-w-md border rounded-xl p-4 flex items-center gap-4 relative overflow-hidden mt-4 transition-all duration-500 ${
+                  deployStatus === "deployed"
+                    ? "bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
+                    : "bg-zinc-500/10 border-zinc-500/30"
+                }`}
+              >
+                <div
+                  className={`absolute left-0 top-0 bottom-0 w-1 ${deployStatus === "deployed" ? "bg-emerald-500" : "bg-zinc-500"}`}
+                />
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${deployStatus === "deployed" ? "bg-emerald-500/20" : "bg-zinc-500/20"}`}
+                >
+                  {deployStatus === "deployed" ? (
+                    <Mail size={18} className="text-emerald-400" />
+                  ) : (
+                    <Hourglass
+                      size={18}
+                      className="text-zinc-400 animate-pulse"
+                    />
+                  )}
+                </div>
+                <div>
+                  <h3
+                    className={`${orbitron.className} font-bold uppercase tracking-widest text-sm ${deployStatus === "deployed" ? "text-emerald-400" : "text-zinc-400"}`}
+                  >
+                    {deployStatus === "deployed"
+                      ? "Match Deployed!"
+                      : "Waiting for Host"}
+                  </h3>
+                  <p className="text-zinc-400 text-xs mt-1">
+                    {deployStatus === "deployed"
+                      ? "Check your mail & click the link to join the lobby."
+                      : "Wait for the host to deploy the match."}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </form>
       </div>
