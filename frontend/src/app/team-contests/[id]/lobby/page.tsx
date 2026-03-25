@@ -6,13 +6,10 @@ import { useUser } from "@clerk/nextjs";
 import { Orbitron } from "next/font/google";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Users, Clock, Wifi } from "lucide-react";
+import { ArrowLeft, Users, Clock, Wifi, Play } from "lucide-react";
 
 const orbitron = Orbitron({ subsets: ["latin"], weight: ["700", "900"] });
 const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
-const WS_URL =
-  process.env.NEXT_PUBLIC_WS_URL ||
-  "wss://contest-rating-system.onrender.com/api/ws";
 
 type MyTeamData = {
   team: { id: string; team_name: string; team_number: number };
@@ -32,7 +29,7 @@ type OnlineMember = {
   user_name: string;
   team_id: string;
   image_url: string;
-  ready: boolean;
+  is_ready: boolean;
 };
 
 const fmt = (s: number) =>
@@ -43,6 +40,8 @@ export default function TeamLobbyPage() {
   const router = useRouter();
   const { user } = useUser();
   const contestID = params?.id as string;
+
+  const isAdmin = user?.publicMetadata?.role === "admin";
 
   const myNodeId =
     typeof window !== "undefined"
@@ -55,7 +54,6 @@ export default function TeamLobbyPage() {
   const [iAmReady, setIAmReady] = useState(false);
   const [onlineMembers, setOnlineMembers] = useState<OnlineMember[]>([]);
   const [readyCount, setReadyCount] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
   const [starting, setStarting] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
@@ -65,129 +63,116 @@ export default function TeamLobbyPage() {
 
   useEffect(() => {
     if (!myNodeId) return;
+
     fetch(`${API}team-contests/${contestID}/my-team?user_id=${myNodeId}`)
       .then((r) => r.json())
       .then((data) => {
-        if (data.error) {
+        if (data.error && !isAdmin) {
           setError(data.error);
           return;
         }
         setMyTeam(data);
       })
-      .catch(() => setError("Failed to load team info"))
+      .catch(() => {
+        if (!isAdmin) setError("Failed to load team info");
+      })
       .finally(() => setLoading(false));
-  }, [contestID, myNodeId]);
+  }, [contestID, myNodeId, isAdmin]);
 
   const connectWS = useCallback(() => {
-    if (!myNodeId || !myTeam) return;
-    const ws = new WebSocket(
-      `${WS_URL}?user_id=${myNodeId}&user_name=${encodeURIComponent(user?.username || user?.firstName || "Player")}&tier=newbie&image_url=${encodeURIComponent(user?.imageUrl || "")}`,
-    );
-    wsRef.current = ws;
+    if (!myNodeId || !user) return;
 
-    ws.onopen = () => {
-      ws.send(
-        JSON.stringify({
-          type: "team_join",
-          payload: JSON.stringify({
-            contest_id: contestID,
-            team_id: myTeam.team.id,
-          }),
-        }),
-      );
-    };
+    const wsBase = API.replace(/^http/, "ws");
+    const userName = encodeURIComponent(
+      user.username ||
+        user.firstName ||
+        (isAdmin ? "Host (Spectator)" : "Player"),
+    );
+    const imageUrl = encodeURIComponent(user.imageUrl || "");
+    const teamIDParam = myTeam
+      ? `&team_id=${myTeam.team.id}`
+      : "&team_id=admin-spectator";
+
+    const wsUrl = `${wsBase}team-contests/${contestID}/lobby-socket?user_id=${myNodeId}${teamIDParam}&user_name=${userName}&image_url=${imageUrl}`;
+
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
 
     ws.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
-        const payload =
-          typeof msg.payload === "string"
-            ? JSON.parse(msg.payload)
-            : msg.payload;
 
-        switch (msg.type) {
-          case "team_member_joined":
-            if (payload.contest_id !== contestID) return;
-            setOnlineMembers((prev) => {
-              const exists = prev.find((m) => m.user_id === payload.user_id);
-              if (exists) return prev;
-              return [
-                ...prev,
-                {
-                  user_id: payload.user_id,
-                  user_name: payload.user_name,
-                  team_id: payload.team_id,
-                  image_url: payload.image_url || "",
-                  ready: false,
-                },
-              ];
-            });
-            setTotalCount(payload.member_count || 0);
-            break;
-
-          case "team_ready_update":
-            if (payload.contest_id !== contestID) return;
-            setReadyCount(payload.ready_count || 0);
-            setTotalCount(payload.total_count || 0);
-            setOnlineMembers((prev) =>
-              prev.map((m) =>
-                m.user_id === payload.user_id ? { ...m, ready: true } : m,
-              ),
+        switch (msg.event) {
+          case "LOBBY_UPDATE":
+            const playersOnly = (msg.players || []).filter(
+              (p: any) => p.team_id !== "admin-spectator",
             );
+            setOnlineMembers(playersOnly);
+            setReadyCount(msg.ready_count || 0);
+            setTotalCount(playersOnly.length);
+
+            const me = (msg.players || []).find(
+              (p: any) => p.user_id === myNodeId,
+            );
+            if (me && me.is_ready) setIAmReady(true);
             break;
 
-          case "team_start":
-            if (payload.contest_id !== contestID) return;
-            fetch(`${API}team-contests/${contestID}/start`, {
-              method: "POST",
-            }).catch(() => {});
+          case "MATCH_START":
             setStarting(true);
-            let c = 3;
+            let c = 10;
             setCountdown(c);
             const iv = setInterval(() => {
               c--;
               setCountdown(c);
               if (c === 0) {
                 clearInterval(iv);
-                router.push(`/team-contests/${contestID}/duel`);
+                if (isAdmin) {
+                  // Admin goes to System Override after countdown
+                  router.push(`/team-contests/${contestID}`);
+                } else {
+                  // Players go to Duel Arena after countdown
+                  router.push(`/team-contests/${contestID}/duel`);
+                }
               }
             }, 1000);
             break;
-
-          case "team_member_left":
-            if (payload.contest_id !== contestID) return;
-            setOnlineMembers((prev) =>
-              prev.filter((m) => m.user_id !== payload.user_id),
-            );
-            break;
         }
-      } catch {}
+      } catch (err) {
+        console.error("WS Parse Error", err);
+      }
     };
 
     ws.onclose = () => {
-      reconnectRef.current = setTimeout(() => connectWS(), 3000);
+      if (!starting) {
+        reconnectRef.current = setTimeout(() => connectWS(), 3000);
+      }
     };
-  }, [myNodeId, myTeam, contestID, user, router]);
+  }, [myNodeId, myTeam, contestID, user, router, starting, isAdmin]);
 
   useEffect(() => {
-    if (!myTeam || !myNodeId) return;
+    if ((!myTeam && !isAdmin) || !myNodeId) return;
     connectWS();
     return () => {
       wsRef.current?.close();
       if (reconnectRef.current) clearTimeout(reconnectRef.current);
     };
-  }, [myTeam, connectWS, myNodeId]);
+  }, [myTeam, connectWS, myNodeId, isAdmin]);
 
   const handleReady = () => {
     if (iAmReady || !wsRef.current || !myTeam) return;
     setIAmReady(true);
     wsRef.current.send(
       JSON.stringify({
-        type: "team_ready",
-        payload: JSON.stringify({
-          contest_id: contestID,
-          team_id: myTeam.team.id,
-        }),
+        event: "PLAYER_READY",
+      }),
+    );
+  };
+
+  const handleHostStart = () => {
+    if (!wsRef.current || readyCount < 6) return;
+    wsRef.current.send(
+      JSON.stringify({
+        event: "HOST_START_MATCH",
       }),
     );
   };
@@ -210,10 +195,10 @@ export default function TeamLobbyPage() {
         <div className="text-center">
           <p className="text-rose-400 text-sm mb-4">{error}</p>
           <Link
-            href="/arena"
+            href="/new"
             className="text-zinc-500 text-xs hover:text-white transition-colors"
           >
-            ← Back to Arena
+            ← Back to ICPC Hub
           </Link>
         </div>
       </div>
@@ -231,9 +216,9 @@ export default function TeamLobbyPage() {
             style={{
               fontSize: 180,
               color:
-                countdown === 1
+                countdown <= 3
                   ? "#f87171"
-                  : countdown === 2
+                  : countdown <= 6
                     ? "#fbbf24"
                     : "#4ade80",
             }}
@@ -246,16 +231,20 @@ export default function TeamLobbyPage() {
 
   const teamColor = myTeam?.team.team_number === 1 ? "#818cf8" : "#f87171";
 
+  const emptySlots = Array.from({
+    length: Math.max(0, 6 - onlineMembers.length),
+  });
+
   return (
     <div className="min-h-screen bg-[#05060b] font-mono text-white">
       <style>{`@keyframes pulseGlow{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
 
       <div className="h-12 border-b border-white/5 flex items-center justify-between px-6 bg-black/40">
         <Link
-          href="/arena"
+          href={isAdmin ? `/team-contests/${contestID}` : "/arena"}
           className="flex items-center gap-2 text-zinc-600 hover:text-zinc-400 transition-colors text-[10px] tracking-widest uppercase"
         >
-          <ArrowLeft size={12} /> Arena
+          <ArrowLeft size={12} /> {isAdmin ? "Spectator View" : "Arena"}
         </Link>
         <h1
           className={`${orbitron.className} text-lg font-black text-white uppercase tracking-tighter`}
@@ -279,7 +268,7 @@ export default function TeamLobbyPage() {
             <p
               className={`${orbitron.className} text-lg font-black text-white uppercase mb-1`}
             >
-              {myTeam?.contest.name}
+              {myTeam?.contest.name || "ICPC 3v3 BATTLE"}
             </p>
             <div className="flex items-center gap-2 text-[10px] text-zinc-500">
               <Clock size={10} />
@@ -287,49 +276,65 @@ export default function TeamLobbyPage() {
             </div>
           </div>
 
-          <div className="rounded-xl bg-white/[0.02] border border-white/[0.05] p-5">
-            <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-3">
-              Your Team
-            </p>
-            <div className="flex items-center gap-2 mb-3">
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{ background: teamColor }}
-              />
-              <span
-                className={`${orbitron.className} text-sm font-black uppercase`}
-                style={{ color: teamColor }}
-              >
-                {myTeam?.team.team_name}
-              </span>
-              {myTeam?.is_captain && (
-                <span className="text-[8px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 ml-auto">
-                  ★ CAPTAIN
-                </span>
-              )}
-            </div>
-            <p className="text-[10px] text-zinc-500">
-              Faction {myTeam?.team.team_number === 1 ? "Alpha" : "Beta"}
-            </p>
-          </div>
-
-          <div className="rounded-xl bg-white/[0.02] border border-white/[0.05] p-5">
-            <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-3">
-              Problems
-            </p>
-            <div className="space-y-2">
-              {myTeam?.problems.map((p) => (
-                <div key={p.id} className="flex items-center gap-3">
-                  <span className="text-[9px] font-black text-cyan-400 w-4">
-                    {String.fromCharCode(64 + p.position)}
+          {!isAdmin && myTeam && (
+            <>
+              <div className="rounded-xl bg-white/[0.02] border border-white/[0.05] p-5">
+                <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-3">
+                  Your Team
+                </p>
+                <div className="flex items-center gap-2 mb-3">
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ background: teamColor }}
+                  />
+                  <span
+                    className={`${orbitron.className} text-sm font-black uppercase`}
+                    style={{ color: teamColor }}
+                  >
+                    {myTeam.team.team_name}
                   </span>
-                  <span className="text-[10px] text-zinc-300 font-mono truncate">
-                    {p.problem_slug}
-                  </span>
+                  {myTeam.is_captain && (
+                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 ml-auto">
+                      ★ CAPTAIN
+                    </span>
+                  )}
                 </div>
-              ))}
+                <p className="text-[10px] text-zinc-500">
+                  Faction {myTeam.team.team_number === 1 ? "Alpha" : "Beta"}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-white/[0.02] border border-white/[0.05] p-5">
+                <p className="text-[9px] text-zinc-600 tracking-widest uppercase mb-3">
+                  Problems
+                </p>
+                <div className="space-y-2">
+                  {myTeam.problems.map((p) => (
+                    <div key={p.id} className="flex items-center gap-3">
+                      <span className="text-[9px] font-black text-cyan-400 w-4">
+                        {String.fromCharCode(64 + p.position)}
+                      </span>
+                      <span className="text-[10px] text-zinc-300 font-mono truncate">
+                        {p.problem_slug}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {isAdmin && (
+            <div className="rounded-xl bg-indigo-500/5 border border-indigo-500/20 p-5 text-center">
+              <p className="text-xs text-indigo-400 font-bold uppercase tracking-widest mb-2">
+                Host Mode Active
+              </p>
+              <p className="text-[10px] text-zinc-500">
+                You are spectating the lobby. Wait for all 6 players to ready up
+                before initiating the battle.
+              </p>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="lg:col-span-2 flex flex-col gap-4">
@@ -342,14 +347,14 @@ export default function TeamLobbyPage() {
                 className="text-[10px] font-mono"
                 style={{ color: readyCount >= 6 ? "#4ade80" : "#fbbf24" }}
               >
-                {readyCount}/{totalCount} Ready
+                {readyCount}/6 Ready
               </span>
             </div>
             <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
-                  width: `${totalCount > 0 ? (readyCount / 6) * 100 : 0}%`,
+                  width: `${(readyCount / 6) * 100}%`,
                   background: readyCount >= 6 ? "#4ade80" : "#6366f1",
                 }}
               />
@@ -374,10 +379,10 @@ export default function TeamLobbyPage() {
                   key={m.user_id}
                   className="flex items-center gap-3 p-3 rounded-lg border transition-all"
                   style={{
-                    background: m.ready
+                    background: m.is_ready
                       ? "rgba(74,222,128,0.05)"
                       : "rgba(255,255,255,0.02)",
-                    borderColor: m.ready
+                    borderColor: m.is_ready
                       ? "rgba(74,222,128,0.25)"
                       : "rgba(255,255,255,0.05)",
                   }}
@@ -386,7 +391,7 @@ export default function TeamLobbyPage() {
                     {m.image_url ? (
                       <Image
                         src={m.image_url}
-                        alt={m.user_name}
+                        alt={m.user_name || "User"}
                         width={32}
                         height={32}
                         unoptimized
@@ -395,10 +400,12 @@ export default function TeamLobbyPage() {
                       />
                     ) : (
                       <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-xs font-black text-indigo-400">
-                        {m.user_name.slice(0, 2).toUpperCase()}
+                        {m.user_name
+                          ? m.user_name.slice(0, 2).toUpperCase()
+                          : "??"}
                       </div>
                     )}
-                    {m.ready && (
+                    {m.is_ready && (
                       <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border border-[#05060b]" />
                     )}
                   </div>
@@ -408,16 +415,15 @@ export default function TeamLobbyPage() {
                     </p>
                     <p
                       className="text-[8px] tracking-widest"
-                      style={{ color: m.ready ? "#4ade80" : "#52525b" }}
+                      style={{ color: m.is_ready ? "#4ade80" : "#52525b" }}
                     >
-                      {m.ready ? "READY" : "WAITING"}
+                      {m.is_ready ? "READY" : "WAITING"}
                     </p>
                   </div>
                 </div>
               ))}
-              {Array.from({
-                length: Math.max(0, 6 - onlineMembers.length),
-              }).map((_, i) => (
+
+              {emptySlots.map((_, i) => (
                 <div
                   key={`empty-${i}`}
                   className="flex items-center gap-3 p-3 rounded-lg border border-dashed border-zinc-800"
@@ -461,27 +467,48 @@ export default function TeamLobbyPage() {
                 {copied ? "Copied!" : "Copy"}
               </button>
             </div>
-            <p className="text-[9px] text-zinc-700 mt-2">
-              Share this URL with all 6 players to join the lobby
-            </p>
           </div>
 
-          <button
-            onClick={handleReady}
-            disabled={iAmReady}
-            className="w-full py-4 rounded-xl font-mono text-[11px] font-black uppercase tracking-widest border-0 cursor-pointer transition-all disabled:opacity-60"
-            style={{
-              background: iAmReady
-                ? "rgba(74,222,128,0.15)"
-                : "linear-gradient(135deg,#6366f1,#4f46e5)",
-              boxShadow: iAmReady
-                ? "0 0 0 1px rgba(74,222,128,0.4)"
-                : "0 12px 40px rgba(99,102,241,0.35)",
-              color: "#fff",
-            }}
-          >
-            {iAmReady ? "✓ READY — Waiting for others..." : "⚔ I'M READY"}
-          </button>
+          {isAdmin ? (
+            <button
+              onClick={handleHostStart}
+              disabled={readyCount < 6}
+              className="w-full py-4 rounded-xl font-mono text-[11px] font-black uppercase tracking-widest border-0 cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              style={{
+                background:
+                  readyCount >= 6
+                    ? "linear-gradient(135deg,#f59e0b,#fbbf24)"
+                    : "rgba(255,255,255,0.05)",
+                boxShadow:
+                  readyCount >= 6
+                    ? "0 12px 40px rgba(245,158,11,0.35)"
+                    : "none",
+                color: readyCount >= 6 ? "#000" : "#52525b",
+              }}
+            >
+              <Play size={14} fill="currentColor" />
+              {readyCount >= 6 ? "START BATTLE" : "WAITING FOR ALL PLAYERS"}
+            </button>
+          ) : (
+            <button
+              onClick={handleReady}
+              disabled={iAmReady}
+              className="w-full py-4 rounded-xl font-mono text-[11px] font-black uppercase tracking-widest border-0 cursor-pointer transition-all disabled:opacity-60"
+              style={{
+                background: iAmReady
+                  ? "rgba(74,222,128,0.15)"
+                  : "linear-gradient(135deg,#6366f1,#4f46e5)",
+                boxShadow: iAmReady
+                  ? "0 0 0 1px rgba(74,222,128,0.4)"
+                  : "0 12px 40px rgba(99,102,241,0.35)",
+                color: "#fff",
+              }}
+            >
+              {iAmReady
+                ? "✓ READY — Waiting for Host to start..."
+                : "⚔ I'M READY"}
+            </button>
+          )}
         </div>
       </div>
     </div>
