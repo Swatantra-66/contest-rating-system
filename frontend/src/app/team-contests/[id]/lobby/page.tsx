@@ -54,6 +54,7 @@ export default function TeamLobbyPage() {
   const [iAmReady, setIAmReady] = useState(false);
   const [onlineMembers, setOnlineMembers] = useState<OnlineMember[]>([]);
   const [readyCount, setReadyCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const [starting, setStarting] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
@@ -127,10 +128,8 @@ export default function TeamLobbyPage() {
               if (c === 0) {
                 clearInterval(iv);
                 if (isAdmin) {
-                  // Admin goes to System Override after countdown
                   router.push(`/team-contests/${contestID}`);
                 } else {
-                  // Players go to Duel Arena after countdown
                   router.push(`/team-contests/${contestID}/duel`);
                 }
               }
@@ -255,7 +254,7 @@ export default function TeamLobbyPage() {
           className="flex items-center gap-2 text-[10px] text-emerald-400 tracking-widest"
           style={{ animation: "pulseGlow 2s ease infinite" }}
         >
-          <Wifi size={10} /> LIVE
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> LIVE
         </div>
       </div>
 
