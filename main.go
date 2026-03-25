@@ -87,6 +87,7 @@ func main() {
 		api.GET("/ws", h.ServeWS(hub))
 		api.GET("/hints/health", h.HintHealth)
 		api.GET("/team-contests/:id/my-team", h.GetMyTeam)
+		api.GET("/team-contests/latest", h.GetLatestContestForUser)
 		api.GET("/problems/:slug", h.GetProblemBySlug)
 
 		api.POST("/contests/:id/finalize", h.FinalizeContest)
