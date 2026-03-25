@@ -1,8 +1,12 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"net/smtp"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -205,7 +209,61 @@ func (h *Handler) CreateTeamContest(c *gin.Context) {
 		return
 	}
 
+	go func(contestID, contestName string, teamA, teamB TeamContestSideCreate) {
+		allMemberIDs := append(teamA.MemberIDs, teamB.MemberIDs...)
+
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "http://localhost:3000"
+			// frontendURL = "https://elonode.online"
+		}
+		lobbyLink := fmt.Sprintf("%s/team-contests/%s/lobby", frontendURL, contestID)
+
+		for _, userID := range allMemberIDs {
+			email, err := getUserEmailFromClerk(userID)
+			if err != nil {
+				fmt.Printf("[EMAIL SYSTEM] : Error fetching email for UUID %s: %v\n", userID, err)
+				continue
+			}
+
+			err = sendMatchInviteEmail(email, contestName, lobbyLink)
+			if err != nil {
+				fmt.Printf("[EMAIL SYSTEM] : Failed to send to %s: %v\n", email, err)
+			} else {
+				fmt.Printf("[EMAIL SYSTEM] : Invite sent successfully to: %s\n", email)
+			}
+		}
+	}(contest.ID, contest.Name, req.TeamA, req.TeamB)
+
 	c.JSON(http.StatusCreated, contest)
+}
+
+func (h *Handler) GetLatestContestForUser(c *gin.Context) {
+	userID := c.Query("user_id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	var contest TeamContest
+	err := h.db.Table("team_contests").
+		Select("team_contests.*").
+		Joins("JOIN team_contest_teams ON team_contest_teams.contest_id = team_contests.id").
+		Joins("JOIN team_contest_members ON team_contest_members.team_id = team_contest_teams.id").
+		Where("team_contest_members.user_id = ? AND team_contests.finalized = ?", userID, false).
+		Order("team_contests.created_at DESC").
+		First(&contest).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusOK, nil)
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, contest)
 }
 
 func (h *Handler) GetTeamContest(c *gin.Context) {
@@ -539,4 +597,75 @@ func EnsureUUID(id string) string {
 		return uuid.NewString()
 	}
 	return id
+}
+
+func getUserEmailFromClerk(userID string) (string, error) {
+	clerkSecret := os.Getenv("CLERK_SECRET_KEY")
+	if clerkSecret == "" {
+		return "", fmt.Errorf("CLERK_SECRET_KEY is not set")
+	}
+
+	req, _ := http.NewRequest("GET", "https://api.clerk.com/v1/users/"+userID, nil)
+	req.Header.Add("Authorization", "Bearer "+clerkSecret)
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	res, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		return "", fmt.Errorf("failed to fetch user from clerk, status: %d", res.StatusCode)
+	}
+
+	body, _ := io.ReadAll(res.Body)
+
+	var clerkUser struct {
+		EmailAddresses []struct {
+			EmailAddress string `json:"email_address"`
+		} `json:"email_addresses"`
+	}
+
+	if err := json.Unmarshal(body, &clerkUser); err != nil {
+		return "", err
+	}
+
+	if len(clerkUser.EmailAddresses) > 0 {
+		return clerkUser.EmailAddresses[0].EmailAddress, nil
+	}
+	return "", fmt.Errorf("no email found for user")
+}
+
+func sendMatchInviteEmail(toEmail, contestName, lobbyLink string) error {
+	from := os.Getenv("SMTP_EMAIL")
+	password := os.Getenv("SMTP_PASSWORD")
+	if from == "" || password == "" {
+		return fmt.Errorf("SMTP credentials not set in .env")
+	}
+
+	smtpHost := "smtp.gmail.com"
+	smtpPort := "587"
+
+	subject := "Subject: INITIATE: You are summoned for a 3v3 ICPC Battle!\r\n"
+	headers := "MIME-version: 1.0;\r\nContent-Type: text/html; charset=\"UTF-8\";\r\n\r\n"
+
+	htmlBody := fmt.Sprintf(`
+		<div style="font-family: monospace; background-color: #05060b; color: #e4e4e7; padding: 40px; border-radius: 10px;">
+			<h2 style="color: #6366f1;">ELONODE - MATCH DEPLOYED</h2>
+			<p>Your Captain has deployed <strong>%s</strong>.</p>
+			<p>The system is waiting for all nodes to connect.</p>
+			<a href="%s" style="display: inline-block; padding: 12px 24px; background-color: #4ade80; color: #000; text-decoration: none; font-weight: bold; border-radius: 5px; margin-top: 20px;">
+				JOIN LOBBY & READY UP
+			</a>
+			<p style="margin-top: 30px; font-size: 10px; color: #52525b;">Do not share this link with unauthorized personnel.</p>
+		</div>
+	`, contestName, lobbyLink)
+
+	message := []byte(subject + headers + htmlBody)
+
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{toEmail}, message)
+
+	return err
 }
