@@ -6,7 +6,7 @@ import { useUser } from "@clerk/nextjs";
 import { Orbitron } from "next/font/google";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Users, Clock, Wifi, Play } from "lucide-react";
+import { ArrowLeft, Users, Clock, Play } from "lucide-react";
 
 const orbitron = Orbitron({ subsets: ["latin"], weight: ["700", "900"] });
 const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
@@ -54,7 +54,6 @@ export default function TeamLobbyPage() {
   const [iAmReady, setIAmReady] = useState(false);
   const [onlineMembers, setOnlineMembers] = useState<OnlineMember[]>([]);
   const [readyCount, setReadyCount] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
   const [starting, setStarting] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
@@ -110,7 +109,6 @@ export default function TeamLobbyPage() {
             );
             setOnlineMembers(playersOnly);
             setReadyCount(msg.ready_count || 0);
-            setTotalCount(playersOnly.length);
 
             const me = (msg.players || []).find(
               (p: any) => p.user_id === myNodeId,
