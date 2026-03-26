@@ -130,6 +130,17 @@ export default function CreateICPCContest() {
   );
   const [latestContestId, setLatestContestId] = useState("");
 
+  const [adminActiveContest] = useState(() => {
+    if (typeof window !== "undefined") {
+      const savedId = localStorage.getItem("admin_latest_contest");
+      const savedTime = localStorage.getItem("admin_latest_contest_time");
+      if (savedId && savedTime && Date.now() - Number(savedTime) < 10800000) {
+        return savedId;
+      }
+    }
+    return "";
+  });
+
   useEffect(() => {
     if (isAdmin || !myNodeId) return;
 
@@ -256,6 +267,10 @@ export default function CreateICPCContest() {
         setSubmitting(false);
         return;
       }
+
+      localStorage.setItem("admin_latest_contest", data.id);
+      localStorage.setItem("admin_latest_contest_time", Date.now().toString());
+
       router.push(`/team-contests/${data.id}`);
     } catch {
       setError("Network error while deploying contest");
@@ -814,6 +829,38 @@ export default function CreateICPCContest() {
                     Join Lobby
                   </button>
                 )}
+              </div>
+            )}
+
+            {isAdmin && adminActiveContest && (
+              <div
+                className={`w-full max-w-md border rounded-xl p-5 flex flex-col relative overflow-hidden mt-4 transition-all duration-500 bg-[#0a0a1a] border-indigo-500/40 shadow-[0_10px_30px_-10px_rgba(99,102,241,0.3)]`}
+              >
+                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500 shadow-[0_0_15px_#6366f1]" />
+                <div className="flex items-center gap-4 pl-2">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-indigo-500/20 border border-indigo-500/40">
+                    <Shield size={20} className="text-indigo-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3
+                      className={`${orbitron.className} font-black uppercase tracking-widest text-base text-indigo-400`}
+                    >
+                      ACTIVE DEPLOYMENT
+                    </h3>
+                    <p className="text-zinc-500 text-xs mt-1 font-mono">
+                      You have a match running. Monitor the systems.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(`/team-contests/${adminActiveContest}`)
+                  }
+                  className="w-full mt-5 py-3.5 bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-black uppercase tracking-[0.2em] rounded-lg transition-all cursor-pointer shadow-[0_0_20px_rgba(99,102,241,0.3)] flex justify-center items-center"
+                >
+                  Go To System Override
+                </button>
               </div>
             )}
           </div>
