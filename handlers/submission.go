@@ -264,7 +264,7 @@ func runWithoutDBCases(c *gin.Context, req SubmitRequest, action string) {
 	judgeReq := Judge0Request{
 		SourceCode:    req.Code,
 		LanguageID:    req.LanguageID,
-		Stdin:         "",
+		Stdin:         req.FallbackInput,
 		CPUTimeLimit:  limits.CPUTimeLimit,
 		WallTimeLimit: limits.WallTimeLimit,
 		MemoryLimitKB: limits.MemoryLimitKB,
