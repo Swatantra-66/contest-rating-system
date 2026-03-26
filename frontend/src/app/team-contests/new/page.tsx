@@ -17,7 +17,7 @@ import {
   Swords,
   Loader2,
   RefreshCw,
-  Mail,
+  Rocket,
   Hourglass,
 } from "lucide-react";
 
@@ -128,6 +128,7 @@ export default function CreateICPCContest() {
   const [deployStatus, setDeployStatus] = useState<"waiting" | "deployed">(
     "waiting",
   );
+  const [latestContestId, setLatestContestId] = useState("");
 
   useEffect(() => {
     if (isAdmin || !myNodeId) return;
@@ -139,8 +140,15 @@ export default function CreateICPCContest() {
         );
         if (res.ok) {
           const data = await res.json();
-          if (data && data.id) {
-            setDeployStatus("deployed");
+          if (data && data.id && data.created_at) {
+            const createdAtTime = new Date(data.created_at).getTime();
+            const now = Date.now();
+            const fiveMinutes = 5 * 60 * 1000;
+
+            if (now - createdAtTime < fiveMinutes) {
+              setLatestContestId(data.id);
+              setDeployStatus("deployed");
+            }
           }
         }
       } catch (err) {}
@@ -265,7 +273,7 @@ export default function CreateICPCContest() {
       <div className="w-full max-w-4xl flex flex-col gap-6 relative z-10">
         <div className="mb-2 flex items-center justify-between">
           <Link
-            href="/arena"
+            href="/"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -744,41 +752,68 @@ export default function CreateICPCContest() {
 
             {!isAdmin && (
               <div
-                className={`w-full max-w-md border rounded-xl p-4 flex items-center gap-4 relative overflow-hidden mt-4 transition-all duration-500 ${
+                className={`w-full max-w-md border rounded-xl p-5 flex flex-col relative overflow-hidden mt-4 transition-all duration-500 ${
                   deployStatus === "deployed"
-                    ? "bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
-                    : "bg-zinc-500/10 border-zinc-500/30"
+                    ? "bg-[#061a10] border-emerald-500/40 shadow-[0_10px_30px_-10px_rgba(16,185,129,0.4)]"
+                    : "bg-[#09090b] border-zinc-800 shadow-2xl"
                 }`}
               >
                 <div
-                  className={`absolute left-0 top-0 bottom-0 w-1 ${deployStatus === "deployed" ? "bg-emerald-500" : "bg-zinc-500"}`}
+                  className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+                    deployStatus === "deployed"
+                      ? "bg-emerald-500 shadow-[0_0_15px_#4ade80]"
+                      : "bg-zinc-700"
+                  }`}
                 />
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${deployStatus === "deployed" ? "bg-emerald-500/20" : "bg-zinc-500/20"}`}
-                >
-                  {deployStatus === "deployed" ? (
-                    <Mail size={18} className="text-emerald-400" />
-                  ) : (
-                    <Hourglass
-                      size={18}
-                      className="text-zinc-400 animate-pulse"
-                    />
-                  )}
-                </div>
-                <div>
-                  <h3
-                    className={`${orbitron.className} font-bold uppercase tracking-widest text-sm ${deployStatus === "deployed" ? "text-emerald-400" : "text-zinc-400"}`}
+
+                <div className="flex items-center gap-4 pl-2">
+                  <div
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors border ${
+                      deployStatus === "deployed"
+                        ? "bg-emerald-500/20 border-emerald-500/40"
+                        : "bg-zinc-900 border-zinc-800"
+                    }`}
                   >
-                    {deployStatus === "deployed"
-                      ? "Match Deployed!"
-                      : "Waiting for Host"}
-                  </h3>
-                  <p className="text-zinc-400 text-xs mt-1">
-                    {deployStatus === "deployed"
-                      ? "Check your mail & click the link to join the lobby."
-                      : "Wait for the host to deploy the match."}
-                  </p>
+                    {deployStatus === "deployed" ? (
+                      <Rocket size={20} className="text-emerald-400" />
+                    ) : (
+                      <Hourglass
+                        size={20}
+                        className="text-zinc-500 animate-pulse"
+                      />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h3
+                      className={`${orbitron.className} font-black uppercase tracking-widest text-base ${
+                        deployStatus === "deployed"
+                          ? "text-emerald-400"
+                          : "text-zinc-300"
+                      }`}
+                    >
+                      {deployStatus === "deployed"
+                        ? "MATCH DEPLOYED"
+                        : "WAIT FOR HOST"}
+                    </h3>
+                    <p className="text-zinc-500 text-xs mt-1 font-mono">
+                      {deployStatus === "deployed"
+                        ? "Systems ready. Enter the battle arena."
+                        : "System is on standby until deployment."}
+                    </p>
+                  </div>
                 </div>
+
+                {deployStatus === "deployed" && latestContestId && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      router.push(`/team-contests/${latestContestId}/lobby`)
+                    }
+                    className="w-full mt-5 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black uppercase tracking-[0.2em] rounded-lg transition-all cursor-pointer flex justify-center items-center shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)]"
+                  >
+                    Join Lobby
+                  </button>
+                )}
               </div>
             )}
           </div>
