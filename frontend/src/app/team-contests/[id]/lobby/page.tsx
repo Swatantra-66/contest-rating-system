@@ -6,10 +6,13 @@ import { useUser } from "@clerk/nextjs";
 import { Orbitron } from "next/font/google";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Users, Clock, Play } from "lucide-react";
+import { ArrowLeft, Users, Clock } from "lucide-react";
 
 const orbitron = Orbitron({ subsets: ["latin"], weight: ["700", "900"] });
 const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
+const WS_URL =
+  process.env.NEXT_PUBLIC_WS_URL ||
+  "wss://contest-rating-system.onrender.com/api/ws";
 
 type MyTeamData = {
   team: { id: string; team_name: string; team_number: number };
@@ -64,66 +67,122 @@ export default function TeamLobbyPage() {
   useEffect(() => {
     if (!myNodeId) return;
 
-    fetch(`${API}team-contests/${contestID}/my-team?user_id=${myNodeId}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error && !isAdmin) {
-          setError(data.error);
-          return;
-        }
-        setMyTeam(data);
-      })
-      .catch(() => {
-        if (!isAdmin) setError("Failed to load team info");
-      })
-      .finally(() => setLoading(false));
+    if (isAdmin) {
+      fetch(`${API}team-contests/${contestID}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.error) {
+            setError(data.error);
+            return;
+          }
+          setMyTeam({
+            team: {
+              id: "admin-spectator",
+              team_name: "Host Spectator",
+              team_number: 0,
+            },
+            member: { user_id: myNodeId, is_captain: true },
+            problems: [],
+            contest: {
+              id: data.id,
+              name: data.name,
+              duration_sec: data.duration_sec,
+              finalized: data.finalized,
+            },
+            is_captain: true,
+          });
+        })
+        .catch(() => setError("Failed to load contest info"))
+        .finally(() => setLoading(false));
+    } else {
+      fetch(`${API}team-contests/${contestID}/my-team?user_id=${myNodeId}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.error) {
+            setError(data.error);
+            return;
+          }
+          setMyTeam(data);
+        })
+        .catch(() => setError("Failed to load team info"))
+        .finally(() => setLoading(false));
+    }
   }, [contestID, myNodeId, isAdmin]);
 
   const connectWS = useCallback(() => {
-    if (!myNodeId || !user) return;
+    if (!myNodeId || !user || !myTeam) return;
 
-    const wsBase = API.replace(/^http/, "ws");
     const userName = encodeURIComponent(
-      user.username ||
-        user.firstName ||
-        (isAdmin ? "Host (Spectator)" : "Player"),
+      user.username || user.firstName || (isAdmin ? "Host" : "Player"),
     );
     const imageUrl = encodeURIComponent(user.imageUrl || "");
-    const teamIDParam = myTeam
-      ? `&team_id=${myTeam.team.id}`
-      : "&team_id=admin-spectator";
 
-    const wsUrl = `${wsBase}team-contests/${contestID}/lobby-socket?user_id=${myNodeId}${teamIDParam}&user_name=${userName}&image_url=${imageUrl}`;
-
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket(
+      `${WS_URL}?user_id=${myNodeId}&user_name=${userName}&image_url=${imageUrl}`,
+    );
     wsRef.current = ws;
+
+    ws.onopen = () => {
+      ws.send(
+        JSON.stringify({
+          type: "team_join",
+          payload: JSON.stringify({
+            contest_id: contestID,
+            team_id: myTeam.team.id,
+          }),
+        }),
+      );
+    };
 
     ws.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
+        const payload =
+          typeof msg.payload === "string"
+            ? JSON.parse(msg.payload)
+            : msg.payload;
 
-        switch (msg.event) {
-          case "LOBBY_UPDATE":
-            const playersOnly = (msg.players || []).filter(
-              (p: any) => p.team_id !== "admin-spectator",
+        if (msg.type === "team_member_joined") {
+          if (payload.contest_id === contestID) {
+            setOnlineMembers((prev) => {
+              if (prev.find((m) => m.user_id === payload.user_id)) return prev;
+              return [
+                ...prev,
+                {
+                  user_id: payload.user_id,
+                  user_name: payload.user_name,
+                  team_id: payload.team_id,
+                  image_url: payload.image_url,
+                  is_ready: false,
+                },
+              ];
+            });
+          }
+        } else if (msg.type === "team_ready_update") {
+          if (payload.contest_id === contestID) {
+            setOnlineMembers((prev) =>
+              prev.map((m) =>
+                m.user_id === payload.user_id ? { ...m, is_ready: true } : m,
+              ),
             );
-            setOnlineMembers(playersOnly);
-            setReadyCount(msg.ready_count || 0);
-
-            const me = (msg.players || []).find(
-              (p: any) => p.user_id === myNodeId,
+            setReadyCount(payload.ready_count || 0);
+            if (payload.user_id === myNodeId) setIAmReady(true);
+          }
+        } else if (msg.type === "team_member_left") {
+          if (payload.contest_id === contestID) {
+            setOnlineMembers((prev) =>
+              prev.filter((m) => m.user_id !== payload.user_id),
             );
-            if (me && me.is_ready) setIAmReady(true);
-            break;
-
-          case "MATCH_START":
+          }
+        } else if (msg.type === "team_start") {
+          if (payload.contest_id === contestID) {
             setStarting(true);
             let c = 10;
             setCountdown(c);
             const iv = setInterval(() => {
               c--;
               setCountdown(c);
-              if (c === 0) {
+              if (c <= 0) {
                 clearInterval(iv);
                 if (isAdmin) {
                   router.push(`/team-contests/${contestID}`);
@@ -132,7 +191,7 @@ export default function TeamLobbyPage() {
                 }
               }
             }, 1000);
-            break;
+          }
         }
       } catch (err) {
         console.error("WS Parse Error", err);
@@ -144,32 +203,28 @@ export default function TeamLobbyPage() {
         reconnectRef.current = setTimeout(() => connectWS(), 3000);
       }
     };
-  }, [myNodeId, myTeam, contestID, user, router, starting, isAdmin]);
+  }, [myNodeId, myTeam, contestID, user, isAdmin, starting, router]);
 
   useEffect(() => {
-    if ((!myTeam && !isAdmin) || !myNodeId) return;
+    if (!myTeam || !myNodeId) return;
     connectWS();
     return () => {
       wsRef.current?.close();
       if (reconnectRef.current) clearTimeout(reconnectRef.current);
     };
-  }, [myTeam, connectWS, myNodeId, isAdmin]);
+  }, [myTeam, connectWS, myNodeId]);
 
   const handleReady = () => {
     if (iAmReady || !wsRef.current || !myTeam) return;
     setIAmReady(true);
-    wsRef.current.send(
-      JSON.stringify({
-        event: "PLAYER_READY",
-      }),
-    );
-  };
 
-  const handleHostStart = () => {
-    if (!wsRef.current || readyCount < 6) return;
     wsRef.current.send(
       JSON.stringify({
-        event: "HOST_START_MATCH",
+        type: "team_ready",
+        payload: JSON.stringify({
+          contest_id: contestID,
+          team_id: myTeam.team.id,
+        }),
       }),
     );
   };
@@ -192,10 +247,10 @@ export default function TeamLobbyPage() {
         <div className="text-center">
           <p className="text-rose-400 text-sm mb-4">{error}</p>
           <Link
-            href="/new"
+            href="/team-contests/new"
             className="text-zinc-500 text-xs hover:text-white transition-colors"
           >
-            ← Back to ICPC Hub
+            ← Back to Setup
           </Link>
         </div>
       </div>
@@ -227,7 +282,6 @@ export default function TeamLobbyPage() {
     );
 
   const teamColor = myTeam?.team.team_number === 1 ? "#818cf8" : "#f87171";
-
   const emptySlots = Array.from({
     length: Math.max(0, 6 - onlineMembers.length),
   });
@@ -322,14 +376,22 @@ export default function TeamLobbyPage() {
           )}
 
           {isAdmin && (
-            <div className="rounded-xl bg-indigo-500/5 border border-indigo-500/20 p-5 text-center">
-              <p className="text-xs text-indigo-400 font-bold uppercase tracking-widest mb-2">
-                Host Mode Active
-              </p>
-              <p className="text-[10px] text-zinc-500">
-                You are spectating the lobby. Wait for all 6 players to ready up
-                before initiating the battle.
-              </p>
+            <div className="rounded-xl bg-indigo-500/5 border border-indigo-500/20 p-5 text-center flex flex-col gap-4">
+              <div>
+                <p className="text-xs text-indigo-400 font-bold uppercase tracking-widest mb-2">
+                  Host Mode Active
+                </p>
+                <p className="text-[10px] text-zinc-500">
+                  You are spectating the lobby. The match will automatically
+                  begin when all 6 players are ready.
+                </p>
+              </div>
+              <button
+                onClick={() => router.push(`/team-contests/${contestID}`)}
+                className="w-full py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[10px] font-black uppercase tracking-widest rounded-lg transition-colors cursor-pointer"
+              >
+                ← Back to System Override
+              </button>
             </div>
           )}
         </div>
@@ -466,27 +528,7 @@ export default function TeamLobbyPage() {
             </div>
           </div>
 
-          {isAdmin ? (
-            <button
-              onClick={handleHostStart}
-              disabled={readyCount < 6}
-              className="w-full py-4 rounded-xl font-mono text-[11px] font-black uppercase tracking-widest border-0 cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              style={{
-                background:
-                  readyCount >= 6
-                    ? "linear-gradient(135deg,#f59e0b,#fbbf24)"
-                    : "rgba(255,255,255,0.05)",
-                boxShadow:
-                  readyCount >= 6
-                    ? "0 12px 40px rgba(245,158,11,0.35)"
-                    : "none",
-                color: readyCount >= 6 ? "#000" : "#52525b",
-              }}
-            >
-              <Play size={14} fill="currentColor" />
-              {readyCount >= 6 ? "START BATTLE" : "WAITING FOR ALL PLAYERS"}
-            </button>
-          ) : (
+          {!isAdmin && (
             <button
               onClick={handleReady}
               disabled={iAmReady}
@@ -501,9 +543,7 @@ export default function TeamLobbyPage() {
                 color: "#fff",
               }}
             >
-              {iAmReady
-                ? "✓ READY — Waiting for Host to start..."
-                : "⚔ I'M READY"}
+              {iAmReady ? "✓ READY — Waiting for others..." : "⚔ I'M READY"}
             </button>
           )}
         </div>
