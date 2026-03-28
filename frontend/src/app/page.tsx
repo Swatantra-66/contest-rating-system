@@ -6,6 +6,7 @@ import { useUser, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 import UnicornScene from "unicornstudio-react";
 import { Swords, Trophy, Activity, Terminal, Zap } from "lucide-react";
 import { Orbitron } from "next/font/google";
+import InfoSection from "@/components/InfoSection"; // 🔥 IMPORT HERE
 
 const orbitron = Orbitron({ subsets: ["latin"], weight: ["700", "900"] });
 
@@ -275,26 +276,30 @@ export default function NodeHub() {
               animationFillMode: "forwards",
             }}
           >
-            {!user ? (
-              <SignInButton mode="modal" fallbackRedirectUrl="/">
-                <button className="group flex flex-col items-center gap-2 text-zinc-500 hover:text-white transition-colors cursor-pointer">
-                  <span className="text-[10px] font-mono uppercase tracking-[0.3em]">
-                    Get Started
-                  </span>
-                </button>
-              </SignInButton>
-            ) : (
-              <Link
-                href="/docs"
-                className="group flex flex-col items-center gap-2 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+            <button
+              onClick={handleScroll}
+              className="group flex flex-col items-center gap-2 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+            >
+              <span className="text-[10px] font-mono uppercase tracking-[0.3em]">
+                Scroll to explore
+              </span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="animate-bounce"
               >
-                <span className="text-[10px] font-mono uppercase tracking-[0.3em]">
-                  Access System Docs for more info
-                </span>
-              </Link>
-            )}
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
           </div>
         </section>
+        <InfoSection />
       </div>
     </>
   );
