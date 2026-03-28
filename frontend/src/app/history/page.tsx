@@ -40,7 +40,6 @@ export default function GlobalHistoryPage() {
   const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
-    // fetch("http://localhost:8080/api/history");
     fetch(`${process.env.NEXT_PUBLIC_API_URL}history`)
       .then((res) => res.json())
       .then((data) => {
@@ -57,7 +56,6 @@ export default function GlobalHistoryPage() {
     setDetailLoading(true);
     setActiveDetail({ type, id });
     try {
-      // const res = await fetch(`http://localhost:8080/api/${type}s/${id}`);
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}${type}s/${id}`,
       );
@@ -72,8 +70,50 @@ export default function GlobalHistoryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-zinc-500 flex items-center justify-center font-mono text-xs tracking-widest uppercase animate-pulse">
-        Querying Rating Logs...
+      <div className="min-h-screen bg-[#05060b] flex flex-col items-center justify-center text-zinc-500 font-mono px-6">
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+            @keyframes shine {
+              0% { left: -100%; }
+              100% { left: 200%; }
+            }
+            @keyframes loadSweep {
+              0% { transform: translateX(-100%); }
+              100% { transform: translateX(200%); }
+            }
+          `,
+          }}
+        />
+
+        <div className="flex flex-col items-center gap-8 max-w-sm w-full text-center">
+          <div
+            className={`${futuristicFont.className} text-4xl sm:text-5xl font-black tracking-tighter flex items-center relative overflow-hidden py-2`}
+          >
+            <span className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+              ELO
+            </span>
+            <span className="text-indigo-500 drop-shadow-[0_0_15px_rgba(99,102,241,0.4)]">
+              NODE
+            </span>
+            <div className="absolute top-0 -left-full w-[50%] h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-[30deg] animate-[shine_2s_infinite_ease-in-out]" />
+          </div>
+
+          <div className="w-full max-w-[200px] h-[3px] bg-zinc-900 rounded-full overflow-hidden relative">
+            <div className="absolute top-0 left-0 w-1/2 h-full bg-indigo-500 shadow-[0_0_10px_#6366f1] animate-[loadSweep_1.5s_infinite_ease-in-out]" />
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-xs text-indigo-400 font-bold uppercase tracking-[0.2em] animate-pulse">
+              QUERYING RATING LOGS
+            </span>
+            <p className="text-[10px] uppercase tracking-widest text-zinc-600 leading-relaxed">
+              Accessing global rating ledger.
+              <br />
+              Decrypting historical rank changes.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
