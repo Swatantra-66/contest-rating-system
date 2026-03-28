@@ -405,7 +405,7 @@ export default function InfoSection() {
         }}
       />
 
-      <section className="relative w-full max-w-[1400px] mx-auto my-12 md:my-24 flex flex-col lg:flex-row overflow-hidden rounded-2xl bg-[#0a0014] border border-zinc-900 min-h-[350px]">
+      <section className="relative w-full max-w-[1400px] mx-auto mb-12 md:mb-24 mt-0 flex flex-col lg:flex-row overflow-hidden rounded-2xl bg-[#0a0014] border border-zinc-900 min-h-[350px]">
         <div className="relative z-20 w-full lg:w-[45%] px-8 py-16 md:py-24 md:px-16 bg-[#0a0014] flex flex-col justify-center">
           <div className="absolute inset-y-0 -right-12 w-12 bg-gradient-to-l from-transparent to-[#0a0014] pointer-events-none hidden lg:block" />
 
@@ -446,8 +446,8 @@ export default function InfoSection() {
         </div>
       </section>
 
-      <section className="py-16 border-b border-zinc-900/50 flex flex-col items-center justify-center gap-8">
-        <p className="text-[10px] text-zinc-600 font-mono uppercase tracking-[0.2em] font-bold">
+      <section className="pt-2 pb-16 border-b border-zinc-900/50 flex flex-col items-center justify-center gap-10">
+        <p className="text-xs text-zinc-500 font-mono uppercase tracking-[0.2em] font-bold">
           Trusted by Elite Competitive Programmers
         </p>
         <div className="flex flex-wrap justify-center items-center gap-12 md:gap-20 opacity-50 grayscale">
@@ -913,13 +913,13 @@ export default function InfoSection() {
           <p className="text-zinc-300 text-sm md:text-[17px] mb-8 leading-relaxed">
             ZERO OPS. PURE Algorithmic duels.
           </p>
-          <button
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="px-6 py-3 bg-white text-black text-sm font-semibold rounded-md transition-all duration-200 hover:bg-zinc-100 hover:shadow-[0_2px_12px_rgba(255,255,255,0.2)] flex items-center justify-center gap-1.5 mx-auto"
+          <Link
+            href="/signup"
+            className="px-6 py-3 bg-white text-black text-sm font-semibold rounded-md transition-all duration-200 hover:bg-zinc-100 hover:shadow-[0_2px_12px_rgba(255,255,255,0.2)] cursor-pointer flex items-center justify-center gap-1.5 mx-auto w-max"
           >
             Initialize your node
             <ChevronRight size={18} strokeWidth={2.5} />
-          </button>
+          </Link>
         </div>
       </section>
 
@@ -1063,13 +1063,13 @@ export default function InfoSection() {
         </div>
         <div className="flex items-center gap-6 font-medium">
           <Link
-            href="#"
+            href="https://discord.com/channels/1308083728035217429/1478339574592835634"
             className="hover:text-white transition-colors flex items-center gap-1.5"
           >
             <MinimalDiscordIcon /> Discord
           </Link>
           <Link
-            href="#"
+            href="https://github.com/Swatantra-66/elonode"
             className="hover:text-white transition-colors flex items-center gap-1.5"
           >
             <MinimalGithubIcon /> GitHub
