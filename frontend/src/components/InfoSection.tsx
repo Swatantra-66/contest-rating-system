@@ -20,6 +20,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
+import { useUser, SignUpButton } from "@clerk/nextjs";
 
 const orbitron = Orbitron({ subsets: ["latin"], weight: ["700", "900"] });
 
@@ -357,6 +358,7 @@ const MinimalGithubIcon = () => (
 );
 
 export default function InfoSection() {
+  const { isSignedIn } = useUser();
   const [testimonialIdx, setTestimonialIdx] = useState(0);
   const [fade, setFade] = useState(true);
 
@@ -913,13 +915,22 @@ export default function InfoSection() {
           <p className="text-zinc-300 text-sm md:text-[17px] mb-8 leading-relaxed">
             ZERO OPS. PURE Algorithmic duels.
           </p>
-          <Link
-            href="/signup"
-            className="px-6 py-3 bg-white text-black text-sm font-semibold rounded-md transition-all duration-200 hover:bg-zinc-100 hover:shadow-[0_2px_12px_rgba(255,255,255,0.2)] cursor-pointer flex items-center justify-center gap-1.5 mx-auto w-max"
-          >
-            Initialize your node
-            <ChevronRight size={18} strokeWidth={2.5} />
-          </Link>
+          {isSignedIn ? (
+            <Link
+              href="/arena"
+              className="px-6 py-3 bg-white text-black text-sm font-semibold rounded-md transition-all duration-200 hover:bg-zinc-100 hover:shadow-[0_2px_12px_rgba(255,255,255,0.2)] cursor-pointer flex items-center justify-center gap-1.5 mx-auto w-max"
+            >
+              Join Contest
+              <ChevronRight size={18} strokeWidth={2.5} />
+            </Link>
+          ) : (
+            <SignUpButton mode="modal" forceRedirectUrl="/">
+              <button className="px-6 py-3 bg-white text-black text-sm font-semibold rounded-md transition-all duration-200 hover:bg-zinc-100 hover:shadow-[0_2px_12px_rgba(255,255,255,0.2)] cursor-pointer flex items-center justify-center gap-1.5 mx-auto w-max">
+                Initialize your node
+                <ChevronRight size={18} strokeWidth={2.5} />
+              </button>
+            </SignUpButton>
+          )}
         </div>
       </section>
 
@@ -930,27 +941,41 @@ export default function InfoSection() {
           </h4>
           <ul className="space-y-4 text-zinc-500 text-sm font-medium">
             <li>
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link
+                href="/arena"
+                className="hover:text-white transition-colors"
+              >
                 Matchmaking
               </Link>
             </li>
             <li>
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link href="/docs" className="hover:text-white transition-colors">
                 ELO Rating System
               </Link>
             </li>
             <li>
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link
+                href="https://ce.judge0.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
+              >
                 Code Execution
               </Link>
             </li>
             <li>
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link
+                href="/leaderboard"
+                className="hover:text-white transition-colors"
+              >
                 Live Leaderboards
               </Link>
             </li>
             <li>
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link
+                href="/terms"
+                className="hover:text-white transition-colors"
+              >
                 Anti-Cheat
               </Link>
             </li>
@@ -962,24 +987,36 @@ export default function InfoSection() {
           </h4>
           <ul className="space-y-4 text-zinc-500 text-sm font-medium">
             <li>
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link
+                href="/arena"
+                className="hover:text-white transition-colors"
+              >
                 1v1 Duels
               </Link>
             </li>
             <li>
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link
+                href="/team-contests/new"
+                className="hover:text-white transition-colors"
+              >
                 3v3 ICPC Battles
               </Link>
             </li>
             <li>
-              <Link href="#" className="hover:text-white transition-colors">
-                Practice Arena
-              </Link>
+              <span className="flex items-center text-zinc-600 cursor-not-allowed">
+                Practice Arena{" "}
+                <span className="ml-2 text-[8px] px-1.5 py-0.5 rounded-sm bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  COMING SOON
+                </span>
+              </span>
             </li>
             <li>
-              <Link href="#" className="hover:text-white transition-colors">
-                Custom Lobbies
-              </Link>
+              <span className="flex items-center text-zinc-600 cursor-not-allowed">
+                Custom Lobbies{" "}
+                <span className="ml-2 text-[8px] px-1.5 py-0.5 rounded-sm bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  COMING SOON
+                </span>
+              </span>
             </li>
           </ul>
         </div>
@@ -1002,12 +1039,20 @@ export default function InfoSection() {
               </Link>
             </li>
             <li>
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link
+                href="/api-reference"
+                className="hover:text-white transition-colors"
+              >
                 API Reference
               </Link>
             </li>
             <li>
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link
+                href="https://discord.com/channels/1308083728035217429/1478339574592835634"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
+              >
                 Community Discord
               </Link>
             </li>
@@ -1019,26 +1064,35 @@ export default function InfoSection() {
           </h4>
           <ul className="space-y-4 text-zinc-500 text-sm font-medium">
             <li>
-              <Link
-                href="#"
-                className="hover:text-white transition-colors flex items-center gap-2"
-              >
-                <div className="w-2 h-2 rounded-full bg-emerald-500" /> Status:
-                All Systems Operational
-              </Link>
+              <div className="flex items-center gap-2 text-zinc-500 cursor-default select-none">
+                <div className="relative flex h-2 w-2 items-center justify-center">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </div>
+                <span>Status: All Systems Operational</span>
+              </div>
             </li>
             <li>
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link
+                href="/terms"
+                className="hover:text-white transition-colors"
+              >
                 Terms of Service
               </Link>
             </li>
             <li>
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link
+                href="/privacy"
+                className="hover:text-white transition-colors"
+              >
                 Privacy Policy
               </Link>
             </li>
             <li>
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link
+                href="/support"
+                className="hover:text-white transition-colors"
+              >
                 Contact Support
               </Link>
             </li>
