@@ -417,9 +417,12 @@ export default function InfoSection() {
           </h2>
           <Link
             href="/docs"
-            className="inline-flex items-center justify-center px-5 py-3 bg-white text-black text-sm font-bold rounded transition-colors hover:bg-zinc-200 mt-2 w-max"
+            className="group relative overflow-hidden inline-flex items-center justify-center px-5 py-3 bg-white text-black text-sm font-bold rounded mt-2 w-max transition-all duration-300 hover:shadow-[0_2px_12px_rgba(124,58,237,0.4)]"
           >
-            View Runtimes <span className="ml-2">→</span>
+            <span className="absolute left-0 top-0 h-full w-0 bg-[#7c3aed] transition-all duration-300 ease-out group-hover:w-full"></span>
+            <span className="relative z-10 flex items-center transition-colors duration-300 group-hover:text-white">
+              View Runtimes <span className="ml-2">→</span>
+            </span>
           </Link>
         </div>
 
@@ -483,9 +486,12 @@ export default function InfoSection() {
             <div className="flex flex-wrap gap-4 mt-12">
               <Link
                 href="/arena"
-                className="px-6 py-3 bg-white text-black text-sm font-bold rounded hover:bg-zinc-200 transition-colors"
+                className="group relative overflow-hidden inline-flex items-center justify-center px-6 py-3 bg-white text-black text-sm font-bold rounded transition-all duration-300 hover:shadow-[0_2px_12px_rgba(124,58,237,0.4)]"
               >
-                Start for free <span className="ml-1">→</span>
+                <span className="absolute left-0 top-0 h-full w-0 bg-[#7c3aed] transition-all duration-300 ease-out group-hover:w-full"></span>
+                <span className="relative z-10 flex items-center transition-colors duration-300 group-hover:text-white">
+                  Start for free <span className="ml-1">→</span>
+                </span>
               </Link>
               <Link
                 href="/docs"
@@ -918,16 +924,22 @@ export default function InfoSection() {
           {isSignedIn ? (
             <Link
               href="/arena"
-              className="px-6 py-3 bg-white text-black text-sm font-semibold rounded-md transition-all duration-200 hover:bg-zinc-100 hover:shadow-[0_2px_12px_rgba(255,255,255,0.2)] cursor-pointer flex items-center justify-center gap-1.5 mx-auto w-max"
+              className="group relative overflow-hidden px-6 py-3 bg-white text-black text-sm font-semibold rounded-md transition-all duration-300 hover:shadow-[0_2px_12px_rgba(124,58,237,0.4)] cursor-pointer flex items-center justify-center mx-auto w-max"
             >
-              Join Contest
-              <ChevronRight size={18} strokeWidth={2.5} />
+              <span className="absolute left-0 top-0 h-full w-0 bg-[#7c3aed] transition-all duration-300 ease-out group-hover:w-full"></span>
+              <span className="relative z-10 flex items-center gap-1.5 transition-colors duration-300 group-hover:text-white">
+                Join Contest
+                <ChevronRight size={18} strokeWidth={2.5} />
+              </span>
             </Link>
           ) : (
             <SignUpButton mode="modal" forceRedirectUrl="/">
-              <button className="px-6 py-3 bg-white text-black text-sm font-semibold rounded-md transition-all duration-200 hover:bg-zinc-100 hover:shadow-[0_2px_12px_rgba(255,255,255,0.2)] cursor-pointer flex items-center justify-center gap-1.5 mx-auto w-max">
-                Initialize your node
-                <ChevronRight size={18} strokeWidth={2.5} />
+              <button className="group relative overflow-hidden px-6 py-3 bg-white text-black text-sm font-semibold rounded-md transition-all duration-300 hover:shadow-[0_2px_12px_rgba(124,58,237,0.4)] cursor-pointer flex items-center justify-center mx-auto w-max">
+                <span className="absolute left-0 top-0 h-full w-0 bg-[#7c3aed] transition-all duration-300 ease-out group-hover:w-full"></span>
+                <span className="relative z-10 flex items-center gap-1.5 transition-colors duration-300 group-hover:text-white">
+                  Initialize your node
+                  <ChevronRight size={18} strokeWidth={2.5} />
+                </span>
               </button>
             </SignUpButton>
           )}
