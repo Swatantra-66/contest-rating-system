@@ -652,11 +652,11 @@ export default function InfoSection() {
               Durable, highly parallel execution engine
             </h3>
             <p className="text-zinc-400 mb-8">
-              Compile complex algorithmic logic and async workloads across 40+
+              Compile complex algorithmic logic and async workloads across 15+
               language environments. No managing workers.
             </p>
             <Link
-              href="#"
+              href="/docs"
               className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-2 mb-8"
             >
               Execution docs →
@@ -693,7 +693,9 @@ export default function InfoSection() {
               calculations with point-in-time recovery and high availability.
             </p>
             <Link
-              href="#"
+              href="https://supabase.com/docs/guides/database/connecting-to-postgres"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-2 mb-8"
             >
               Database docs →
