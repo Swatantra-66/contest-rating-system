@@ -6,7 +6,7 @@ import { useUser, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 import UnicornScene from "unicornstudio-react";
 import { Swords, Trophy, Activity, Terminal, Zap } from "lucide-react";
 import { Orbitron } from "next/font/google";
-import InfoSection from "@/components/InfoSection"; // 🔥 IMPORT HERE
+import InfoSection from "@/components/InfoSection";
 
 const orbitron = Orbitron({ subsets: ["latin"], weight: ["700", "900"] });
 
