@@ -1,7 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, X, Database, Zap, Trophy, Lock } from "lucide-react";
+import {
+  Menu,
+  X,
+  Database,
+  Zap,
+  Trophy,
+  Lock,
+  Users,
+  Copy,
+  Plus,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Orbitron } from "next/font/google";
@@ -32,6 +42,13 @@ export default function Sidebar() {
   });
   const [isOnline, setIsOnline] = useState(true);
 
+  const [showLobbyModal, setShowLobbyModal] = useState(false);
+  const [lobbyMode, setLobbyMode] = useState<"create" | "join">("create");
+  const [joinCode, setJoinCode] = useState("");
+  const [generatedCode, setGeneratedCode] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+
   useEffect(() => {
     const fetchSystemData = async () => {
       try {
@@ -61,7 +78,7 @@ export default function Sidebar() {
   const navLink = (href: string, label: string, icon?: React.ReactNode) => (
     <Link
       href={href}
-      className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-1 flex items-center gap-3 ${pathname === href || (href !== "/" && pathname.startsWith(href)) ? "border-emerald-400 text-white" : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-700"}`}
+      className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-0.5 flex items-center gap-3 ${pathname === href || (href !== "/" && pathname.startsWith(href)) ? "border-emerald-400 text-white" : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-700"}`}
     >
       <span>{label}</span>
       {icon}
@@ -70,7 +87,10 @@ export default function Sidebar() {
 
   return (
     <>
-      <style>{`a[href*="unicorn.studio"]{display:none!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;}`}</style>
+      <style>{`
+        a[href*="unicorn.studio"]{display:none!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;}
+        @keyframes modalIn { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+      `}</style>
 
       <button
         className="md:hidden fixed top-4 left-4 z-50 p-2 bg-zinc-900 rounded-md border border-zinc-800 text-zinc-400"
@@ -113,21 +133,19 @@ export default function Sidebar() {
           <div className="w-full h-[1px] bg-zinc-800/80 mt-6 mb-8" />
 
           <nav className="flex flex-col gap-8 flex-1">
-            <div className="space-y-4">
+            <div className="space-y-3">
               <p className="text-[10px] text-emerald-500/80 font-bold uppercase tracking-[0.3em] mb-4">
                 Core Interface
               </p>
-
               <Link
                 href={isAdmin ? "/admin" : "#"}
-                className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-1 flex items-center gap-3 ${pathname === "/admin" ? "border-emerald-400 text-white" : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-700"}`}
+                className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-0.5 flex items-center gap-3 ${pathname === "/admin" ? "border-emerald-400 text-white" : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-700"}`}
               >
                 <span>Admin Panel</span>
                 {!isAdmin && (
                   <Lock size={12} className="text-zinc-600 mb-0.5" />
                 )}
               </Link>
-
               {navLink("/arena", "Join Contest")}
               {navLink("/leaderboard", "Leaderboard")}
               {navLink("/contests", "Contest Log")}
@@ -138,7 +156,7 @@ export default function Sidebar() {
                 className="relative group/icpc block"
               >
                 <div
-                  className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-1 flex items-center gap-3 cursor-pointer ${pathname.startsWith("/team-contests") ? "border-emerald-400 text-white" : "border-transparent text-zinc-400 group-hover/icpc:text-zinc-100 hover:border-zinc-700"}`}
+                  className={`uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-0.5 flex items-center gap-3 cursor-pointer ${pathname.startsWith("/team-contests") ? "border-emerald-400 text-white" : "border-transparent text-zinc-400 group-hover/icpc:text-zinc-100 hover:border-zinc-700"}`}
                 >
                   <span>3v3 ICPC Battle</span>
                   <span className="text-[9px] text-amber-500/90 border border-amber-500/30 bg-amber-500/5 px-1.5 py-0.5 rounded uppercase tracking-widest font-bold">
@@ -146,6 +164,16 @@ export default function Sidebar() {
                   </span>
                 </div>
               </Link>
+
+              <button
+                onClick={() => setShowLobbyModal(true)}
+                className="w-full text-left uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-0.5 flex items-center gap-3 cursor-pointer border-transparent text-zinc-400 hover:text-zinc-100 hover:border-zinc-700"
+              >
+                <span>Custom Lobbies</span>
+                <span className="text-[9px] text-amber-500/90 border border-amber-500/30 bg-amber-500/5 px-1.5 py-0.5 rounded uppercase tracking-widest font-bold">
+                  BETA
+                </span>
+              </button>
             </div>
 
             <div className="space-y-4">
@@ -287,6 +315,152 @@ export default function Sidebar() {
           </div>
         </div>
       </div>
+
+      {showLobbyModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm font-mono p-4">
+          <div
+            className="w-full max-w-md bg-[#0a0a0f] border border-white/10 rounded-2xl overflow-hidden shadow-2xl relative"
+            style={{ animation: "modalIn 0.2s ease-out" }}
+          >
+            <div className="flex items-center justify-between p-5 border-b border-white/5 bg-black/20">
+              <h2 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                <Users size={16} className="text-indigo-400" /> Custom Lobby
+              </h2>
+              <button
+                onClick={() => {
+                  setShowLobbyModal(false);
+                  setJoinCode("");
+                  setGeneratedCode("");
+                  setLobbyMode("create");
+                }}
+                className="text-zinc-500 hover:text-white transition-colors p-1 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex border-b border-white/5 bg-black/10">
+              <button
+                onClick={() => setLobbyMode("create")}
+                className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-colors cursor-pointer ${
+                  lobbyMode === "create"
+                    ? "text-indigo-400 border-b-2 border-indigo-500 bg-indigo-500/5"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                Create Room
+              </button>
+              <button
+                onClick={() => setLobbyMode("join")}
+                className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-colors cursor-pointer ${
+                  lobbyMode === "join"
+                    ? "text-indigo-400 border-b-2 border-indigo-500 bg-indigo-500/5"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                Join Room
+              </button>
+            </div>
+
+            <div className="p-6">
+              {lobbyMode === "create" && (
+                <div className="flex flex-col gap-5">
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Generate a unique room code and share it with a friend to
+                    invite them to a private 1v1 algorithmic duel.
+                  </p>
+
+                  {!generatedCode ? (
+                    <button
+                      onClick={() => setIsGenerating(true)}
+                      disabled={isGenerating}
+                      className="w-full py-4 rounded-xl text-white font-mono text-[11px] font-bold uppercase tracking-widest border border-indigo-500/30 transition-all hover:bg-indigo-500/10 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer disabled:cursor-wait"
+                    >
+                      {isGenerating ? (
+                        "Generating..."
+                      ) : (
+                        <>
+                          <Plus size={14} /> Generate Room Code
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="bg-black/40 border border-white/5 rounded-xl p-4 text-center relative group">
+                        <span className="text-[10px] text-zinc-500 uppercase tracking-widest absolute top-2 left-1/2 -translate-x-1/2">
+                          Room Code
+                        </span>
+                        <p className="text-3xl font-black text-white tracking-[0.2em] mt-3">
+                          {generatedCode}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() =>
+                            navigator.clipboard.writeText(generatedCode)
+                          }
+                          className="flex-1 py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest border border-white/10 text-zinc-300 hover:bg-white/5 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <Copy size={12} /> Copy
+                        </button>
+                        <button
+                          className="flex-[2] py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest text-white transition-all flex items-center justify-center cursor-pointer"
+                          style={{
+                            background:
+                              "linear-gradient(135deg,#6366f1,#4f46e5)",
+                          }}
+                        >
+                          Enter Lobby →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {lobbyMode === "join" && (
+                <div className="flex flex-col gap-5">
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Enter a 5-character room code shared by your friend to join
+                    their private lobby.
+                  </p>
+                  <div className="space-y-2">
+                    <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">
+                      Enter Code
+                    </label>
+                    <input
+                      type="text"
+                      value={joinCode}
+                      onChange={(e) =>
+                        setJoinCode(e.target.value.toUpperCase().slice(0, 5))
+                      }
+                      placeholder="E.g. A7X9K"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 text-white text-center text-xl font-bold tracking-[0.3em] outline-none focus:border-indigo-500/50 transition-colors placeholder:text-zinc-700"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setIsJoining(true)}
+                    disabled={joinCode.length !== 5 || isJoining}
+                    className="w-full py-4 rounded-xl text-white font-mono text-[11px] font-bold uppercase tracking-widest border-0 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+                    style={{
+                      background:
+                        joinCode.length === 5
+                          ? "linear-gradient(135deg,#6366f1,#4f46e5)"
+                          : "#18181b",
+                      boxShadow:
+                        joinCode.length === 5
+                          ? "0 4px 20px rgba(99,102,241,0.25)"
+                          : "none",
+                    }}
+                  >
+                    {isJoining ? "Connecting..." : "Join Lobby"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
