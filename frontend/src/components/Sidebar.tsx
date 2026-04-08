@@ -13,7 +13,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Orbitron } from "next/font/google";
 import {
   UserButton,
@@ -28,6 +28,7 @@ const futuristicFont = Orbitron({ subsets: ["latin"], weight: ["700", "900"] });
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   const { userId, isLoaded } = useAuth();
   const ADMIN_USER_ID = process.env.NEXT_PUBLIC_ADMIN_USER_ID;
@@ -74,6 +75,37 @@ export default function Sidebar() {
     const interval = setInterval(fetchSystemData, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleCreateLobby = async () => {
+    setIsGenerating(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}lobby/create`,
+        {
+          method: "POST",
+        },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setGeneratedCode(data.room_code);
+      } else {
+        alert("Server returned an error while creating room.");
+      }
+    } catch (error) {
+      console.error("Error creating lobby:", error);
+      alert("Failed to connect to backend to create room.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleJoinLobby = () => {
+    setIsJoining(true);
+    if (joinCode.length === 5) {
+      router.push(`/arena/custom/${joinCode}`);
+    }
+    setTimeout(() => setIsJoining(false), 2000);
+  };
 
   const navLink = (href: string, label: string, icon?: React.ReactNode) => (
     <Link
@@ -372,7 +404,7 @@ export default function Sidebar() {
 
                   {!generatedCode ? (
                     <button
-                      onClick={() => setIsGenerating(true)}
+                      onClick={handleCreateLobby}
                       disabled={isGenerating}
                       className="w-full py-4 rounded-xl text-white font-mono text-[11px] font-bold uppercase tracking-widest border border-indigo-500/30 transition-all hover:bg-indigo-500/10 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer disabled:cursor-wait"
                     >
@@ -404,6 +436,9 @@ export default function Sidebar() {
                           <Copy size={12} /> Copy
                         </button>
                         <button
+                          onClick={() =>
+                            router.push(`/arena/custom/${generatedCode}`)
+                          }
                           className="flex-[2] py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest text-white transition-all flex items-center justify-center cursor-pointer"
                           style={{
                             background:
@@ -439,7 +474,7 @@ export default function Sidebar() {
                     />
                   </div>
                   <button
-                    onClick={() => setIsJoining(true)}
+                    onClick={handleJoinLobby}
                     disabled={joinCode.length !== 5 || isJoining}
                     className="w-full py-4 rounded-xl text-white font-mono text-[11px] font-bold uppercase tracking-widest border-0 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
                     style={{
