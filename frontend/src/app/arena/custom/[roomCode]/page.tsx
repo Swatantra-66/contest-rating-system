@@ -12,6 +12,7 @@ import {
   Users,
   Clock,
   Settings,
+  Loader2,
 } from "lucide-react";
 
 export default function CustomArenaPage() {
@@ -20,25 +21,45 @@ export default function CustomArenaPage() {
   const { user, isLoaded } = useUser();
   const roomCode = params.roomCode as string;
 
-  const [code, setCode] = useState("// Write your code here\n");
+  const [code, setCode] = useState("");
   const [language, setLanguage] = useState("Go");
   const [isOpponentConnected, setIsOpponentConnected] = useState(false);
   const [opponentName, setOpponentName] = useState("Opponent");
-  const [timeLeft] = useState(2700);
 
+  const [timeLeft, setTimeLeft] = useState(2700);
   const [problem, setProblem] = useState<any>(null);
   const [isLoadingProblem, setIsLoadingProblem] = useState(true);
+
+  const [activeTab, setActiveTab] = useState<"console" | "tests">("console");
+  const [isRunning, setIsRunning] = useState(false);
+  const [consoleOutput, setConsoleOutput] = useState(
+    "Run your code to see outputs here.",
+  );
 
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+    if (timeLeft <= 0) return;
+    const timerId = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timerId);
+  }, [timeLeft]);
+
+  useEffect(() => {
     const fetchProblem = async () => {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}problems/random`,
-        );
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+        const res = await fetch(`${apiUrl}problems/random`);
         if (res.ok) {
           const data = await res.json();
+          if (typeof data.examples === "string") {
+            try {
+              data.examples = JSON.parse(data.examples);
+            } catch (e) {
+              data.examples = [];
+            }
+          }
           setProblem(data);
         }
       } catch (err) {
@@ -51,19 +72,65 @@ export default function CustomArenaPage() {
   }, []);
 
   useEffect(() => {
+    if (!problem) return;
+
+    if (problem.snippets && problem.snippets[language]) {
+      setCode(problem.snippets[language]);
+      return;
+    }
+
+    const funcNameRaw = problem.title
+      ? problem.title.replace(/[^a-zA-Z0-9]/g, "")
+      : "solution";
+    const funcName = funcNameRaw.charAt(0).toLowerCase() + funcNameRaw.slice(1);
+
+    switch (language) {
+      case "Go":
+        setCode(`func ${funcName}() {\n    // Write your Go code here\n}`);
+        break;
+      case "C++":
+        setCode(
+          `class Solution {\npublic:\n    void ${funcName}() {\n        // Write your C++ code here\n    }\n};`,
+        );
+        break;
+      case "Python":
+        setCode(
+          `class Solution:\n    def ${funcName}(self):\n        # Write your Python code here\n        pass`,
+        );
+        break;
+      case "JavaScript":
+        setCode(
+          `/**\n * @return {any}\n */\nvar ${funcName} = function() {\n    // Write your JavaScript code here\n};`,
+        );
+        break;
+      default:
+        setCode("// Write your code here");
+    }
+  }, [language, problem]);
+
+  useEffect(() => {
     if (!isLoaded || !user) return;
 
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/";
-    const wsUrl =
-      baseUrl.replace(/^http/, "ws") +
-      `ws?user_id=${user.id}&user_name=${encodeURIComponent(user.username || user.firstName || "User")}&image_url=${encodeURIComponent(user.imageUrl)}&tier=Bronze`;
+    let wsBase = baseUrl;
+
+    if (wsBase.startsWith("https://")) {
+      wsBase = wsBase.replace("https://", "wss://");
+    } else if (wsBase.startsWith("http://")) {
+      wsBase = wsBase.replace("http://", "ws://");
+    }
+
+    const wsParams = `user_id=${user.id}&user_name=${encodeURIComponent(
+      user.username || user.firstName || "User",
+    )}&image_url=${encodeURIComponent(user.imageUrl)}&tier=Bronze`;
+
+    const wsUrl = `${wsBase}ws?${wsParams}`;
 
     const socket = new WebSocket(wsUrl);
     ws.current = socket;
 
     socket.onopen = () => {
-      console.log("WebSocket Connected!");
       socket.send(
         JSON.stringify({
           type: "lobby_join",
@@ -79,8 +146,6 @@ export default function CustomArenaPage() {
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log("Received WS Message:", data);
-
       switch (data.type) {
         case "lobby_opponent_joined":
           setIsOpponentConnected(true);
@@ -91,10 +156,6 @@ export default function CustomArenaPage() {
           setOpponentName("Opponent");
           break;
       }
-    };
-
-    socket.onclose = () => {
-      console.log("WebSocket Disconnected");
     };
 
     return () => {
@@ -109,6 +170,47 @@ export default function CustomArenaPage() {
       socket.close();
     };
   }, [isLoaded, user, roomCode]);
+
+  const handleRunCode = async () => {
+    setIsRunning(true);
+    setActiveTab("console");
+    setConsoleOutput(
+      "Compiling and executing code...\n\n> Sending payload to backend server...",
+    );
+
+    try {
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/";
+      const res = await fetch(`${apiUrl}execute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          room_code: roomCode,
+          problem_id: problem?.id || problem?.title,
+          language: language,
+          code: code,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setConsoleOutput(
+          `Status: ${data.status || "Executed"}\nRuntime: ${data.runtime || "N/A"}\n\nOutput:\n${data.output || data.stdout || "No output returned"}`,
+        );
+      } else {
+        const errData = await res.json().catch(() => null);
+        setConsoleOutput(
+          `Error: Execution failed (Status ${res.status}).\n${errData?.error || "Backend execution endpoint might not be ready yet."}`,
+        );
+      }
+    } catch (error) {
+      setConsoleOutput(
+        "Error: Failed to connect to the execution engine.\nMake sure your Go backend has a POST /execute route working.",
+      );
+    } finally {
+      setIsRunning(false);
+    }
+  };
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60)
@@ -141,9 +243,7 @@ export default function CustomArenaPage() {
               Lobby: <span className="text-indigo-400">{roomCode}</span>
             </h1>
           </div>
-
           <div className="h-4 w-px bg-white/10" />
-
           <div className="flex items-center gap-2">
             <Users
               size={14}
@@ -162,13 +262,14 @@ export default function CustomArenaPage() {
         </div>
 
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 text-amber-400 bg-amber-400/5 border border-amber-400/20 px-3 py-1 rounded-md">
+          <div
+            className={`flex items-center gap-2 px-3 py-1 rounded-md border ${timeLeft < 300 ? "text-red-400 bg-red-400/5 border-red-400/20 animate-pulse" : "text-amber-400 bg-amber-400/5 border-amber-400/20"}`}
+          >
             <Clock size={14} />
             <span className="text-xs font-bold tracking-widest">
               {formatTime(timeLeft)}
             </span>
           </div>
-
           <button
             onClick={handleLeaveLobby}
             className="text-zinc-500 hover:text-red-400 transition-colors flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest cursor-pointer"
@@ -203,39 +304,46 @@ export default function CustomArenaPage() {
 
               <div
                 className="prose prose-invert prose-sm text-zinc-400 leading-relaxed mb-8"
-                dangerouslySetInnerHTML={{ __html: problem.description }}
+                dangerouslySetInnerHTML={{
+                  __html:
+                    problem.description ||
+                    problem.content ||
+                    problem.question ||
+                    "<p>No description provided in the database for this problem.</p>",
+                }}
               />
 
-              {problem.examples && problem.examples.length > 0 && (
-                <div className="space-y-6">
-                  {problem.examples.map((ex: any, idx: number) => (
-                    <div key={idx}>
-                      <h3 className="text-xs font-bold text-white uppercase tracking-widest mb-3">
-                        Example {idx + 1}
-                      </h3>
-                      <div className="bg-black/50 border border-white/5 p-4 rounded-xl font-mono text-sm space-y-2">
-                        <div>
-                          <span className="text-zinc-500">Input:</span>{" "}
-                          <span className="text-emerald-300">{ex.input}</span>
-                        </div>
-                        <div>
-                          <span className="text-zinc-500">Output:</span>{" "}
-                          <span className="text-indigo-300">{ex.output}</span>
-                        </div>
-                        {ex.explanation && (
-                          <div className="text-zinc-500 text-xs mt-2">
-                            {"// " + ex.explanation}
+              {Array.isArray(problem.examples) &&
+                problem.examples.length > 0 && (
+                  <div className="space-y-6">
+                    {problem.examples.map((ex: any, idx: number) => (
+                      <div key={idx}>
+                        <h3 className="text-xs font-bold text-white uppercase tracking-widest mb-3">
+                          Example {idx + 1}
+                        </h3>
+                        <div className="bg-black/50 border border-white/5 p-4 rounded-xl font-mono text-sm space-y-2">
+                          <div>
+                            <span className="text-zinc-500">Input:</span>{" "}
+                            <span className="text-emerald-300">{ex.input}</span>
                           </div>
-                        )}
+                          <div>
+                            <span className="text-zinc-500">Output:</span>{" "}
+                            <span className="text-indigo-300">{ex.output}</span>
+                          </div>
+                          {ex.explanation && (
+                            <div className="text-zinc-500 text-xs mt-2">
+                              {"// " + ex.explanation}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
             </div>
           ) : (
             <div className="flex items-center justify-center h-full text-red-400 text-sm">
-              Failed to load problem. Please check connection.
+              Failed to load problem.
             </div>
           )}
         </div>
@@ -259,11 +367,23 @@ export default function CustomArenaPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 px-4 py-1.5 rounded transition-all cursor-pointer">
-                <Play size={12} className="text-emerald-400" /> Run
+              <button
+                onClick={handleRunCode}
+                disabled={isRunning}
+                className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 px-4 py-1.5 rounded transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isRunning ? (
+                  <Loader2
+                    size={12}
+                    className="animate-spin text-emerald-400"
+                  />
+                ) : (
+                  <Play size={12} className="text-emerald-400" />
+                )}
+                {isRunning ? "Running" : "Run"}
               </button>
               <button
-                className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white px-4 py-1.5 rounded transition-all cursor-pointer"
+                className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white px-4 py-1.5 rounded transition-all cursor-pointer hover:opacity-90"
                 style={{
                   background: "linear-gradient(135deg,#6366f1,#4f46e5)",
                 }}
@@ -280,7 +400,6 @@ export default function CustomArenaPage() {
               spellCheck="false"
               className="w-full h-full bg-transparent text-zinc-300 p-6 font-mono text-[13px] leading-relaxed resize-none outline-none focus:ring-0 custom-scrollbar"
             />
-
             {isOpponentConnected && (
               <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex items-center gap-3 max-w-xs shadow-2xl transition-all">
                 <div className="relative">
@@ -305,35 +424,45 @@ export default function CustomArenaPage() {
 
           <div className="h-48 border-t border-white/5 bg-[#0a0a0f] flex flex-col shrink-0">
             <div className="h-8 border-b border-white/5 flex items-center px-4 gap-4">
-              <button className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors cursor-pointer border-b-2 border-transparent hover:border-zinc-500 h-full">
+              <button
+                onClick={() => setActiveTab("console")}
+                className={`flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest transition-colors cursor-pointer border-b-2 h-full ${activeTab === "console" ? "text-emerald-400 border-emerald-400" : "text-zinc-500 border-transparent hover:text-zinc-300"}`}
+              >
                 <Terminal size={12} /> Console
               </button>
-              <button className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-emerald-400 border-b-2 border-emerald-400 h-full">
+              <button
+                onClick={() => setActiveTab("tests")}
+                className={`flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest transition-colors cursor-pointer border-b-2 h-full ${activeTab === "tests" ? "text-emerald-400 border-emerald-400" : "text-zinc-500 border-transparent hover:text-zinc-300"}`}
+              >
                 <CheckCircle2 size={12} /> Test Results
               </button>
             </div>
-            <div className="flex-1 p-4 overflow-y-auto text-xs text-zinc-500">
-              Run your code to see outputs here.
+            <div className="flex-1 p-4 overflow-y-auto font-mono text-[11px] whitespace-pre-wrap">
+              {activeTab === "console" ? (
+                <span
+                  className={
+                    consoleOutput.includes("Error")
+                      ? "text-red-400"
+                      : "text-zinc-400"
+                  }
+                >
+                  {consoleOutput}
+                </span>
+              ) : (
+                <span className="text-zinc-500">
+                  Submit your code to see detailed test cases results here.
+                </span>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-          height: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.2);
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
       `}</style>
     </div>
   );
