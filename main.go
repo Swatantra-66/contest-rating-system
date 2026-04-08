@@ -69,6 +69,7 @@ func main() {
 	if err := h.EnsureRuntimeSchema(); err != nil {
 		log.Fatalf("failed to initialize runtime schema: %v", err)
 	}
+	roomManager := handlers.NewRoomManager()
 
 	api := r.Group("/api")
 	{
@@ -101,6 +102,8 @@ func main() {
 		api.POST("/hints", h.GenerateHint)
 		api.POST("/analysis", h.GenerateAnalysis)
 		api.POST("/team-contests/:id/start", h.StartTeamContest)
+		api.POST("/lobby/create", roomManager.HandleCreateRoom)
+		api.POST("/lobby/join", roomManager.HandleJoinRoom)
 
 		api.DELETE("/contests/:id", RequireAdminAuth(), h.DeleteContest)
 	}
