@@ -13,7 +13,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Orbitron } from "next/font/google";
 import {
   UserButton,
@@ -28,7 +28,6 @@ const futuristicFont = Orbitron({ subsets: ["latin"], weight: ["700", "900"] });
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
 
   const { userId, isLoaded } = useAuth();
   const ADMIN_USER_ID = process.env.NEXT_PUBLIC_ADMIN_USER_ID;
@@ -85,53 +84,6 @@ export default function Sidebar() {
       {icon}
     </Link>
   );
-
-  const handleCreateLobby = async () => {
-    setIsGenerating(true);
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}lobby/create`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setGeneratedCode(data.room_code);
-      } else {
-        alert("Failed to create room");
-      }
-    } catch (err) {
-      console.error("Error creating lobby:", err);
-      alert("Server error while creating room");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleJoinLobby = async () => {
-    setIsJoining(true);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}lobby/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ room_code: joinCode }),
-      });
-
-      if (res.ok) {
-        router.push(`/arena/custom/${joinCode}`);
-      } else {
-        const data = await res.json();
-        alert(data.error || "Invalid Room Code");
-      }
-    } catch (err) {
-      console.error("Error joining lobby:", err);
-      alert("Server error while joining room");
-    } finally {
-      setIsJoining(false);
-    }
-  };
 
   return (
     <>
@@ -420,7 +372,7 @@ export default function Sidebar() {
 
                   {!generatedCode ? (
                     <button
-                      onClick={handleCreateLobby}
+                      onClick={() => setIsGenerating(true)}
                       disabled={isGenerating}
                       className="w-full py-4 rounded-xl text-white font-mono text-[11px] font-bold uppercase tracking-widest border border-indigo-500/30 transition-all hover:bg-indigo-500/10 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer disabled:cursor-wait"
                     >
@@ -452,9 +404,6 @@ export default function Sidebar() {
                           <Copy size={12} /> Copy
                         </button>
                         <button
-                          onClick={() =>
-                            router.push(`/arena/custom/${generatedCode}`)
-                          }
                           className="flex-[2] py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest text-white transition-all flex items-center justify-center cursor-pointer"
                           style={{
                             background:
@@ -490,7 +439,7 @@ export default function Sidebar() {
                     />
                   </div>
                   <button
-                    onClick={handleJoinLobby}
+                    onClick={() => setIsJoining(true)}
                     disabled={joinCode.length !== 5 || isJoining}
                     className="w-full py-4 rounded-xl text-white font-mono text-[11px] font-bold uppercase tracking-widest border-0 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
                     style={{
