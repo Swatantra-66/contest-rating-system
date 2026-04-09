@@ -14,6 +14,7 @@ import {
   Settings,
   Loader2,
 } from "lucide-react";
+import Editor from "@monaco-editor/react";
 
 export default function CustomArenaPage() {
   const params = useParams();
@@ -83,28 +84,76 @@ export default function CustomArenaPage() {
       ? problem.title.replace(/[^a-zA-Z0-9]/g, "")
       : "solution";
     const funcName = funcNameRaw.charAt(0).toLowerCase() + funcNameRaw.slice(1);
+    const PascalFuncName =
+      funcNameRaw.charAt(0).toUpperCase() + funcNameRaw.slice(1);
 
     switch (language) {
-      case "Go":
-        setCode(`func ${funcName}() {\n    // Write your Go code here\n}`);
-        break;
       case "C++":
         setCode(
-          `class Solution {\npublic:\n    void ${funcName}() {\n        // Write your C++ code here\n    }\n};`,
+          `class Solution {\npublic:\n    void ${funcName}() {\n        \n    }\n};`,
+        );
+        break;
+      case "Java":
+        setCode(
+          `class Solution {\n    public void ${funcName}() {\n        \n    }\n}`,
         );
         break;
       case "Python":
+      case "Python3":
+        setCode(`class Solution:\n    def ${funcName}(self):\n        pass`);
+        break;
+      case "C":
+        setCode(`void ${funcName}() {\n    \n}`);
+        break;
+      case "C#":
         setCode(
-          `class Solution:\n    def ${funcName}(self):\n        # Write your Python code here\n        pass`,
+          `public class Solution {\n    public void ${PascalFuncName}() {\n        \n    }\n}`,
         );
         break;
       case "JavaScript":
         setCode(
-          `/**\n * @return {any}\n */\nvar ${funcName} = function() {\n    // Write your JavaScript code here\n};`,
+          `/**\n * @return {void}\n */\nvar ${funcName} = function() {\n    \n};`,
+        );
+        break;
+      case "TypeScript":
+        setCode(`function ${funcName}(): void {\n    \n};`);
+        break;
+      case "PHP":
+        setCode(
+          `class Solution {\n\n    /**\n     * @return NULL\n     */\n    function ${funcName}() {\n        \n    }\n}`,
+        );
+        break;
+      case "Swift":
+        setCode(
+          `class Solution {\n    func ${funcName}() {\n        \n    }\n}`,
+        );
+        break;
+      case "Kotlin":
+        setCode(
+          `class Solution {\n    fun ${funcName}() {\n        \n    }\n}`,
+        );
+        break;
+      case "Dart":
+        setCode(`class Solution {\n  void ${funcName}() {\n    \n  }\n}`);
+        break;
+      case "Go":
+        setCode(`func ${funcName}() {\n    \n}`);
+        break;
+      case "Ruby":
+        setCode(`# @return {Void}\ndef ${funcName}()\n    \nend`);
+        break;
+      case "Scala":
+        setCode(
+          `object Solution {\n    def ${funcName}(): Unit = {\n        \n    }\n}`,
+        );
+        break;
+      case "Rust":
+        setCode(
+          `impl Solution {\n    pub fn ${funcName}() {\n        \n    }\n}`,
         );
         break;
       default:
-        setCode("// Write your code here");
+        setCode("");
     }
   }, [language, problem]);
 
@@ -223,6 +272,43 @@ export default function CustomArenaPage() {
   const handleLeaveLobby = () => {
     if (confirm("Are you sure you want to leave this duel?")) {
       router.push("/");
+    }
+  };
+
+  const getMonacoLanguage = (lang: string) => {
+    switch (lang) {
+      case "C++":
+      case "C":
+        return "cpp";
+      case "C#":
+        return "csharp";
+      case "Python3":
+      case "Python":
+        return "python";
+      case "JavaScript":
+        return "javascript";
+      case "TypeScript":
+        return "typescript";
+      case "Java":
+        return "java";
+      case "PHP":
+        return "php";
+      case "Swift":
+        return "swift";
+      case "Kotlin":
+        return "kotlin";
+      case "Dart":
+        return "dart";
+      case "Go":
+        return "go";
+      case "Ruby":
+        return "ruby";
+      case "Scala":
+        return "scala";
+      case "Rust":
+        return "rust";
+      default:
+        return "plaintext";
     }
   };
 
@@ -356,10 +442,22 @@ export default function CustomArenaPage() {
                 onChange={(e) => setLanguage(e.target.value)}
                 className="bg-black/50 border border-white/10 text-zinc-300 text-xs rounded px-3 py-1.5 outline-none focus:border-indigo-500/50 cursor-pointer"
               >
-                <option value="Go">Go (1.22)</option>
-                <option value="C++">C++ (GCC 11)</option>
-                <option value="Python">Python (3.10)</option>
-                <option value="JavaScript">JavaScript (Node)</option>
+                <option value="C++">C++</option>
+                <option value="Java">Java</option>
+                <option value="Python">Python</option>
+                <option value="Python3">Python3</option>
+                <option value="C">C</option>
+                <option value="C#">C#</option>
+                <option value="JavaScript">JavaScript</option>
+                <option value="TypeScript">TypeScript</option>
+                <option value="PHP">PHP</option>
+                <option value="Swift">Swift</option>
+                <option value="Kotlin">Kotlin</option>
+                <option value="Dart">Dart</option>
+                <option value="Go">Go</option>
+                <option value="Ruby">Ruby</option>
+                <option value="Scala">Scala</option>
+                <option value="Rust">Rust</option>
               </select>
               <button className="text-zinc-500 hover:text-white transition-colors cursor-pointer p-1">
                 <Settings size={14} />
@@ -393,15 +491,26 @@ export default function CustomArenaPage() {
             </div>
           </div>
 
-          <div className="flex-1 relative">
-            <textarea
+          <div className="flex-1 relative bg-[#1e1e1e]">
+            <Editor
+              height="100%"
+              theme="vs-dark"
+              language={getMonacoLanguage(language)}
               value={code}
-              onChange={(e) => setCode(e.target.value)}
-              spellCheck="false"
-              className="w-full h-full bg-transparent text-zinc-300 p-6 font-mono text-[13px] leading-relaxed resize-none outline-none focus:ring-0 custom-scrollbar"
+              onChange={(value) => setCode(value || "")}
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14,
+                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                padding: { top: 24, bottom: 24 },
+                scrollBeyondLastLine: false,
+                smoothScrolling: true,
+                cursorBlinking: "smooth",
+                renderLineHighlight: "all",
+              }}
             />
             {isOpponentConnected && (
-              <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex items-center gap-3 max-w-xs shadow-2xl transition-all">
+              <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex items-center gap-3 max-w-xs shadow-2xl transition-all z-50">
                 <div className="relative">
                   <img
                     src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${opponentName}`}
