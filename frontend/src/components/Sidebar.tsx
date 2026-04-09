@@ -102,6 +102,7 @@ export default function Sidebar() {
   const handleJoinLobby = () => {
     setIsJoining(true);
     if (joinCode.length === 5) {
+      setShowLobbyModal(false);
       router.push(`/arena/custom/${joinCode}`);
     }
     setTimeout(() => setIsJoining(false), 2000);
@@ -436,9 +437,10 @@ export default function Sidebar() {
                           <Copy size={12} /> Copy
                         </button>
                         <button
-                          onClick={() =>
-                            router.push(`/arena/custom/${generatedCode}`)
-                          }
+                          onClick={() => {
+                            setShowLobbyModal(false);
+                            router.push(`/arena/custom/${generatedCode}`);
+                          }}
                           className="flex-[2] py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest text-white transition-all flex items-center justify-center cursor-pointer"
                           style={{
                             background:
