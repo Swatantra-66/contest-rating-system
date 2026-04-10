@@ -16,6 +16,25 @@ import {
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 
+const JUDGE0_LANGUAGE_IDS: Record<string, number> = {
+  "C++": 54,
+  Java: 62,
+  Python3: 71,
+  Python: 71,
+  C: 50,
+  "C#": 51,
+  JavaScript: 63,
+  TypeScript: 74,
+  PHP: 68,
+  Swift: 83,
+  Kotlin: 78,
+  Dart: 28,
+  Go: 60,
+  Ruby: 72,
+  Scala: 81,
+  Rust: 73,
+};
+
 export default function CustomArenaPage() {
   const params = useParams();
   const router = useRouter();
@@ -33,9 +52,8 @@ export default function CustomArenaPage() {
 
   const [activeTab, setActiveTab] = useState<"console" | "tests">("console");
   const [isRunning, setIsRunning] = useState(false);
-  const [consoleOutput, setConsoleOutput] = useState(
-    "Run your code to see outputs here.",
-  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [consoleOutput, setConsoleOutput] = useState("");
 
   const ws = useRef<WebSocket | null>(null);
 
@@ -111,16 +129,14 @@ export default function CustomArenaPage() {
         );
         break;
       case "JavaScript":
-        setCode(
-          `/**\n * @return {void}\n */\nvar ${funcName} = function() {\n    \n};`,
-        );
+        setCode(`var ${funcName} = function() {\n    \n};`);
         break;
       case "TypeScript":
         setCode(`function ${funcName}(): void {\n    \n};`);
         break;
       case "PHP":
         setCode(
-          `class Solution {\n\n    /**\n     * @return NULL\n     */\n    function ${funcName}() {\n        \n    }\n}`,
+          `class Solution {\n    function ${funcName}() {\n        \n    }\n}`,
         );
         break;
       case "Swift":
@@ -140,7 +156,7 @@ export default function CustomArenaPage() {
         setCode(`func ${funcName}() {\n    \n}`);
         break;
       case "Ruby":
-        setCode(`# @return {Void}\ndef ${funcName}()\n    \nend`);
+        setCode(`def ${funcName}()\n    \nend`);
         break;
       case "Scala":
         setCode(
@@ -220,44 +236,65 @@ export default function CustomArenaPage() {
     };
   }, [isLoaded, user, roomCode]);
 
-  const handleRunCode = async () => {
-    setIsRunning(true);
+  const handleExecuteCode = async (actionType: "run" | "submit") => {
+    if (actionType === "run") setIsRunning(true);
+    else setIsSubmitting(true);
+
     setActiveTab("console");
-    setConsoleOutput(
-      "Compiling and executing code...\n\n> Sending payload to backend server...",
-    );
+    setConsoleOutput(`Compiling and executing code...\n`);
 
     try {
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/";
-      const res = await fetch(`${apiUrl}execute`, {
+
+      const payload = {
+        action: actionType,
+        room_code: roomCode,
+        problem_slug:
+          problem?.slug ||
+          problem?.title?.toLowerCase().replace(/[^a-z0-9]+/g, "-") ||
+          "",
+        language_id: JUDGE0_LANGUAGE_IDS[language] || 60,
+        code: code,
+      };
+
+      const res = await fetch(`${apiUrl}submit-judge`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          room_code: roomCode,
-          problem_id: problem?.id || problem?.title,
-          language: language,
-          code: code,
-        }),
+        body: JSON.stringify(payload),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
-        const data = await res.json();
-        setConsoleOutput(
-          `Status: ${data.status || "Executed"}\nRuntime: ${data.runtime || "N/A"}\n\nOutput:\n${data.output || data.stdout || "No output returned"}`,
-        );
+        let out = `Status: ${data.status || "Completed"}\n`;
+        out += `Verdict: ${data.verdict || "N/A"}\n\n`;
+
+        if (data.message) out += `Message: ${data.message}\n\n`;
+
+        if (data.status === "Failed") {
+          out += `Failed on Case: ${data.failed_case_index || "N/A"}\n`;
+          if (data.input) out += `Input: ${data.input}\n`;
+          if (data.expected_output)
+            out += `Expected: ${data.expected_output}\n`;
+          if (data.actual_output) out += `Actual: ${data.actual_output}\n`;
+          if (data.error) out += `\nError Logs:\n${data.error}\n`;
+        } else {
+          if (data.summary) {
+            out += `Summary:\n${JSON.stringify(data.summary, null, 2)}\n`;
+          }
+        }
+        setConsoleOutput(out);
       } else {
-        const errData = await res.json().catch(() => null);
         setConsoleOutput(
-          `Error: Execution failed (Status ${res.status}).\n${errData?.error || "Backend execution endpoint might not be ready yet."}`,
+          `Error: Execution failed (Status ${res.status}).\n${data?.error || ""}`,
         );
       }
     } catch (error) {
-      setConsoleOutput(
-        "Error: Failed to connect to the execution engine.\nMake sure your Go backend has a POST /execute route working.",
-      );
+      setConsoleOutput("Error: Failed to connect to the execution engine.");
     } finally {
-      setIsRunning(false);
+      if (actionType === "run") setIsRunning(false);
+      else setIsSubmitting(false);
     }
   };
 
@@ -395,7 +432,7 @@ export default function CustomArenaPage() {
                     problem.description ||
                     problem.content ||
                     problem.question ||
-                    "<p>No description provided in the database for this problem.</p>",
+                    "<p></p>",
                 }}
               />
 
@@ -418,7 +455,7 @@ export default function CustomArenaPage() {
                           </div>
                           {ex.explanation && (
                             <div className="text-zinc-500 text-xs mt-2">
-                              {"// " + ex.explanation}
+                              {ex.explanation}
                             </div>
                           )}
                         </div>
@@ -466,8 +503,8 @@ export default function CustomArenaPage() {
 
             <div className="flex items-center gap-3">
               <button
-                onClick={handleRunCode}
-                disabled={isRunning}
+                onClick={() => handleExecuteCode("run")}
+                disabled={isRunning || isSubmitting}
                 className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 px-4 py-1.5 rounded transition-all cursor-pointer disabled:opacity-50"
               >
                 {isRunning ? (
@@ -481,12 +518,19 @@ export default function CustomArenaPage() {
                 {isRunning ? "Running" : "Run"}
               </button>
               <button
-                className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white px-4 py-1.5 rounded transition-all cursor-pointer hover:opacity-90"
+                onClick={() => handleExecuteCode("submit")}
+                disabled={isRunning || isSubmitting}
+                className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white px-4 py-1.5 rounded transition-all cursor-pointer hover:opacity-90 disabled:opacity-50"
                 style={{
                   background: "linear-gradient(135deg,#6366f1,#4f46e5)",
                 }}
               >
-                <Send size={12} /> Submit
+                {isSubmitting ? (
+                  <Loader2 size={12} className="animate-spin text-white" />
+                ) : (
+                  <Send size={12} />
+                )}
+                {isSubmitting ? "Submitting" : "Submit"}
               </button>
             </div>
           </div>
@@ -550,7 +594,8 @@ export default function CustomArenaPage() {
               {activeTab === "console" ? (
                 <span
                   className={
-                    consoleOutput.includes("Error")
+                    consoleOutput.includes("Error") ||
+                    consoleOutput.includes("Failed")
                       ? "text-red-400"
                       : "text-zinc-400"
                   }
