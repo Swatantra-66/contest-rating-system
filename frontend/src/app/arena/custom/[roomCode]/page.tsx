@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   Users,
   Clock,
-  Settings,
   Loader2,
   AlertTriangle,
 } from "lucide-react";
@@ -356,13 +355,13 @@ export default function CustomArenaPage() {
 
   if (!isLoaded)
     return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white font-mono">
+      <div className="h-screen w-full bg-[#050505] flex items-center justify-center text-white font-mono">
         Loading Arena...
       </div>
     );
 
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-300 font-mono flex flex-col selection:bg-indigo-500/30 relative">
+    <div className="h-screen w-full overflow-hidden bg-[#050505] text-zinc-300 font-mono flex flex-col selection:bg-indigo-500/30 relative">
       <header className="h-14 border-b border-white/5 bg-[#0a0a0f] flex items-center justify-between px-6 z-10 shrink-0">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
@@ -475,7 +474,7 @@ export default function CustomArenaPage() {
           )}
         </div>
 
-        <div className="w-1/2 flex flex-col bg-[#050505]">
+        <div className="w-1/2 flex flex-col bg-[#050505] overflow-hidden">
           <div className="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-[#0a0a0f] shrink-0">
             <div className="flex items-center gap-4">
               <select
@@ -536,7 +535,7 @@ export default function CustomArenaPage() {
             </div>
           </div>
 
-          <div className="flex-1 relative bg-[#1e1e1e]">
+          <div className="flex-1 relative bg-[#1e1e1e] overflow-hidden">
             <Editor
               height="100%"
               theme="vs-dark"
