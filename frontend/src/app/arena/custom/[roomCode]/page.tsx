@@ -13,6 +13,7 @@ import {
   Clock,
   Settings,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 
@@ -54,6 +55,8 @@ export default function CustomArenaPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [consoleOutput, setConsoleOutput] = useState("");
+
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   const ws = useRef<WebSocket | null>(null);
 
@@ -307,9 +310,11 @@ export default function CustomArenaPage() {
   };
 
   const handleLeaveLobby = () => {
-    if (confirm("Are you sure you want to leave this duel?")) {
-      router.push("/");
-    }
+    setShowLeaveModal(true);
+  };
+
+  const confirmLeave = () => {
+    router.push("/");
   };
 
   const getMonacoLanguage = (lang: string) => {
@@ -357,11 +362,10 @@ export default function CustomArenaPage() {
     );
 
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-300 font-mono flex flex-col selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-[#050505] text-zinc-300 font-mono flex flex-col selection:bg-indigo-500/30 relative">
       <header className="h-14 border-b border-white/5 bg-[#0a0a0f] flex items-center justify-between px-6 z-10 shrink-0">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
             <h1 className="text-white font-bold tracking-widest uppercase text-xs">
               Lobby: <span className="text-indigo-400">{roomCode}</span>
             </h1>
@@ -496,9 +500,6 @@ export default function CustomArenaPage() {
                 <option value="Scala">Scala</option>
                 <option value="Rust">Rust</option>
               </select>
-              <button className="text-zinc-500 hover:text-white transition-colors cursor-pointer p-1">
-                <Settings size={14} />
-              </button>
             </div>
 
             <div className="flex items-center gap-3">
@@ -612,11 +613,48 @@ export default function CustomArenaPage() {
         </div>
       </div>
 
+      {showLeaveModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm font-mono p-4">
+          <div
+            className="w-full max-w-sm bg-[#0a0a0f] border border-white/10 rounded-2xl overflow-hidden shadow-2xl relative"
+            style={{ animation: "modalIn 0.2s ease-out" }}
+          >
+            <div className="p-6 text-center space-y-4">
+              <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                <AlertTriangle size={20} className="text-red-400" />
+              </div>
+              <h2 className="text-lg font-bold text-white uppercase tracking-widest">
+                EXIT
+              </h2>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Are you sure you want to leave this lobby? If the match is
+                ongoing, your progress will be lost.
+              </p>
+            </div>
+            <div className="flex border-t border-white/5 bg-black/20">
+              <button
+                onClick={() => setShowLeaveModal(false)}
+                className="flex-1 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLeave}
+                className="flex-1 py-4 text-[10px] font-bold uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500/20 transition-colors border-l border-white/5 cursor-pointer"
+              >
+                Confirm Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+        @keyframes modalIn { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
       `}</style>
     </div>
   );
