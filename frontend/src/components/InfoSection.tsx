@@ -1028,7 +1028,7 @@ export default function InfoSection() {
               <span className="flex items-center text-zinc-600 cursor-not-allowed">
                 Custom Lobbies{" "}
                 <span className="ml-2 text-[8px] px-1.5 py-0.5 rounded-sm bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  COMING SOON
+                  BETA
                 </span>
               </span>
             </li>
@@ -1108,6 +1108,14 @@ export default function InfoSection() {
                 className="hover:text-white transition-colors"
               >
                 Contact Support
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/support"
+                className="hover:text-white transition-colors"
+              >
+                Report a Bug
               </Link>
             </li>
           </ul>
