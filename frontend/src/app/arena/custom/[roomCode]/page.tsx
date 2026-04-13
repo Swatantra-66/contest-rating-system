@@ -13,6 +13,7 @@ import {
   Clock,
   Loader2,
   AlertTriangle,
+  ArrowLeft,
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 
@@ -41,6 +42,13 @@ export default function CustomArenaPage() {
   const { user, isLoaded } = useUser();
   const roomCode = params.roomCode as string;
 
+  const [phase, setPhase] = useState<"waiting" | "countdown" | "dueling">(
+    "waiting",
+  );
+  const [iAmReady, setIAmReady] = useState(false);
+  const [opponentReady, setOpponentReady] = useState(false);
+  const [countdown, setCountdown] = useState(3);
+
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("Go");
   const [isOpponentConnected, setIsOpponentConnected] = useState(false);
@@ -60,12 +68,12 @@ export default function CustomArenaPage() {
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (timeLeft <= 0) return;
+    if (phase !== "dueling" || timeLeft <= 0) return;
     const timerId = setInterval(() => {
       setTimeLeft((prev) => prev - 1);
     }, 1000);
     return () => clearInterval(timerId);
-  }, [timeLeft]);
+  }, [timeLeft, phase]);
 
   useEffect(() => {
     const fetchProblem = async () => {
@@ -221,6 +229,13 @@ export default function CustomArenaPage() {
         case "lobby_opponent_left":
           setIsOpponentConnected(false);
           setOpponentName("Opponent");
+          setOpponentReady(false);
+          break;
+        case "lobby_opponent_ready":
+          setOpponentReady(true);
+          break;
+        case "lobby_match_start":
+          startCountdown();
           break;
       }
     };
@@ -237,6 +252,40 @@ export default function CustomArenaPage() {
       socket.close();
     };
   }, [isLoaded, user, roomCode]);
+
+  const startCountdown = () => {
+    setPhase("countdown");
+    let c = 3;
+    setCountdown(c);
+    const iv = setInterval(() => {
+      c--;
+      setCountdown(c);
+      if (c === 0) {
+        clearInterval(iv);
+        setPhase("dueling");
+      }
+    }, 1000);
+  };
+
+  const handleReady = () => {
+    if (iAmReady || !problem) return;
+    setIAmReady(true);
+
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(
+        JSON.stringify({
+          type: "lobby_ready",
+          payload: { room_code: roomCode, user_id: user?.id },
+        }),
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (iAmReady && opponentReady && phase === "waiting") {
+      startCountdown();
+    }
+  }, [iAmReady, opponentReady, phase]);
 
   const handleExecuteCode = async (actionType: "run" | "submit") => {
     if (actionType === "run") setIsRunning(true);
@@ -360,6 +409,130 @@ export default function CustomArenaPage() {
       </div>
     );
 
+  if (phase === "waiting") {
+    return (
+      <div className="h-screen w-full bg-[#050505] flex flex-col items-center justify-center font-mono selection:bg-indigo-500/30 relative">
+        <div className="absolute top-8 left-8">
+          <button
+            onClick={handleLeaveLobby}
+            className="text-zinc-500 hover:text-white flex items-center gap-2 text-xs uppercase tracking-widest transition-colors font-bold"
+          >
+            <ArrowLeft size={14} /> Leave Lobby
+          </button>
+        </div>
+
+        <h1 className="text-3xl text-white font-black uppercase tracking-widest mb-16">
+          Lobby <span className="text-indigo-500">{roomCode}</span>
+        </h1>
+
+        <div className="flex gap-16 mb-16">
+          <div className="text-center flex flex-col items-center">
+            <p className="text-zinc-500 mb-4 tracking-widest text-xs font-bold uppercase">
+              You
+            </p>
+            <div
+              className={`w-48 py-6 border rounded-xl font-bold tracking-widest uppercase transition-all ${iAmReady ? "border-emerald-500/50 text-emerald-400 bg-emerald-500/10 shadow-[0_0_30px_rgba(16,185,129,0.15)]" : "border-white/10 text-zinc-500 bg-white/5"}`}
+            >
+              {iAmReady ? "Ready" : "Waiting"}
+            </div>
+          </div>
+
+          <div className="text-center flex flex-col items-center">
+            <p className="text-zinc-500 mb-4 tracking-widest text-xs font-bold uppercase">
+              {opponentName}
+            </p>
+            <div
+              className={`w-48 py-6 border rounded-xl font-bold tracking-widest uppercase transition-all ${opponentReady ? "border-emerald-500/50 text-emerald-400 bg-emerald-500/10 shadow-[0_0_30px_rgba(16,185,129,0.15)]" : "border-white/10 text-zinc-500 bg-white/5"}`}
+            >
+              {opponentReady ? "Ready" : "Waiting"}
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={handleReady}
+          disabled={iAmReady || !problem}
+          className="px-14 py-4 rounded-xl text-xs text-white font-bold uppercase tracking-widest cursor-pointer transition-all disabled:opacity-50"
+          style={{
+            background: iAmReady
+              ? "rgba(74,222,128,0.1)"
+              : "linear-gradient(135deg,#6366f1,#4f46e5)",
+            border: iAmReady ? "1px solid rgba(74,222,128,0.3)" : "none",
+            color: iAmReady ? "#4ade80" : "white",
+            boxShadow: iAmReady ? "none" : "0 8px 25px rgba(99,102,241,0.3)",
+          }}
+        >
+          {!problem
+            ? "Loading Problem..."
+            : iAmReady
+              ? "Waiting for Opponent..."
+              : "Lock In & Ready"}
+        </button>
+
+        {showLeaveModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="w-full max-w-sm bg-[#0a0a0f] border border-white/10 rounded-2xl overflow-hidden shadow-2xl relative text-center">
+              <div className="p-6 space-y-4">
+                <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <AlertTriangle size={20} className="text-red-400" />
+                </div>
+                <h2 className="text-lg font-bold text-white uppercase tracking-widest">
+                  EXIT
+                </h2>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Are you sure you want to leave this lobby?
+                </p>
+              </div>
+              <div className="flex border-t border-white/5 bg-black/20">
+                <button
+                  onClick={() => setShowLeaveModal(false)}
+                  className="flex-1 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmLeave}
+                  className="flex-1 py-4 text-[10px] font-bold uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500/20 transition-colors border-l border-white/5 cursor-pointer"
+                >
+                  Confirm Leave
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (phase === "countdown") {
+    return (
+      <div className="h-screen w-full bg-[#050505] flex items-center justify-center font-mono selection:bg-indigo-500/30">
+        <style>{`@keyframes countPop{0%{transform:scale(0.8);opacity:0}50%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}`}</style>
+        <div className="text-center">
+          <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase mb-8 font-bold">
+            Match begins in
+          </p>
+          <div
+            key={countdown}
+            className="text-[10rem] font-black leading-none"
+            style={{
+              color:
+                countdown === 1
+                  ? "#f87171"
+                  : countdown === 2
+                    ? "#fbbf24"
+                    : "#4ade80",
+              textShadow: `0 0 80px ${countdown === 1 ? "rgba(248,113,113,0.5)" : countdown === 2 ? "rgba(251,191,36,0.5)" : "rgba(74,222,128,0.5)"}`,
+              animation: "countPop 0.5s ease-out forwards",
+            }}
+          >
+            {countdown === 0 ? "GO" : countdown}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen w-full overflow-hidden bg-[#050505] text-zinc-300 font-mono flex flex-col selection:bg-indigo-500/30 relative">
       <header className="h-14 border-b border-white/5 bg-[#0a0a0f] flex items-center justify-between px-6 z-10 shrink-0">
@@ -381,8 +554,8 @@ export default function CustomArenaPage() {
               className={`text-[10px] uppercase tracking-widest font-bold ${isOpponentConnected ? "text-zinc-300" : "text-zinc-500"}`}
             >
               {isOpponentConnected
-                ? `${opponentName} Ready`
-                : "Waiting for Opponent..."}
+                ? `${opponentName} Connected`
+                : "Opponent Disconnected"}
             </span>
           </div>
         </div>
