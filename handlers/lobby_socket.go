@@ -109,8 +109,8 @@ func (h *Handler) ConnectLobbySocket(c *gin.Context) {
 	userName := c.Query("user_name")
 	imageURL := c.Query("image_url")
 
-	if userID == "" || teamID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id and team_id are required"})
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
 		return
 	}
 
@@ -165,11 +165,33 @@ func (h *Handler) ConnectLobbySocket(c *gin.Context) {
 			if c, exists := room.Clients[userID]; exists {
 				c.IsReady = true
 			}
+
+			readyCount := 0
+			totalClients := len(room.Clients)
+			for _, client := range room.Clients {
+				if client.IsReady {
+					readyCount++
+				}
+			}
 			room.mu.Unlock()
 
 			log.Printf("[LOBBY] User %s is READY in contest %s", userID, contestID)
 
 			Hub.BroadcastState(contestID)
+
+			if totalClients == 2 && readyCount == 2 {
+				log.Printf("[LOBBY] Both players ready! Auto-starting MATCH_START for %s", contestID)
+
+				startPayload := map[string]interface{}{
+					"event": "MATCH_START",
+				}
+
+				room.mu.RLock()
+				for _, client := range room.Clients {
+					_ = client.SendJSON(startPayload)
+				}
+				room.mu.RUnlock()
+			}
 
 		} else if event == "HOST_START_MATCH" {
 			log.Printf("[LOBBY] Host initiated MATCH_START for %s", contestID)
