@@ -186,10 +186,14 @@ export default function CustomArenaPage() {
   useEffect(() => {
     if (!isLoaded || !user) return;
 
-    const baseUrl =
+    let baseUrl =
       process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/";
-    let wsBase = baseUrl;
 
+    if (!baseUrl.endsWith("/")) {
+      baseUrl += "/";
+    }
+
+    let wsBase = baseUrl;
     if (wsBase.startsWith("https://")) {
       wsBase = wsBase.replace("https://", "wss://");
     } else if (wsBase.startsWith("http://")) {
@@ -198,43 +202,42 @@ export default function CustomArenaPage() {
 
     const wsParams = `user_id=${user.id}&user_name=${encodeURIComponent(
       user.username || user.firstName || "User",
-    )}&image_url=${encodeURIComponent(user.imageUrl)}&tier=Bronze`;
+    )}&image_url=${encodeURIComponent(user.imageUrl)}&team_id=none`;
 
-    const wsUrl = `${wsBase}ws?${wsParams}`;
+    const wsUrl = `${wsBase}lobby/${roomCode}/ws?${wsParams}`;
+
+    console.log("Connecting to custom lobby WS:", wsUrl);
 
     const socket = new WebSocket(wsUrl);
     ws.current = socket;
 
     socket.onopen = () => {
-      socket.send(
-        JSON.stringify({
-          type: "lobby_join",
-          payload: {
-            room_code: roomCode,
-            user_id: user.id,
-            user_name: user.username || user.firstName || "User",
-            image_url: user.imageUrl,
-          },
-        }),
-      );
+      console.log("Connected to Custom Lobby WS");
     };
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      switch (data.type) {
-        case "lobby_opponent_joined":
-          setIsOpponentConnected(true);
-          setOpponentName(data.payload.user_name);
+      console.log("Received Lobby WS Event:", data);
+
+      switch (data.event) {
+        case "LOBBY_UPDATE":
+          if (data.players && Array.isArray(data.players)) {
+            const opponent = data.players.find(
+              (p: any) => p.user_id !== user.id,
+            );
+            if (opponent) {
+              setIsOpponentConnected(true);
+              setOpponentName(opponent.user_name || "Opponent");
+              setOpponentReady(opponent.is_ready);
+            } else {
+              setIsOpponentConnected(false);
+              setOpponentName("Opponent");
+              setOpponentReady(false);
+            }
+          }
           break;
-        case "lobby_opponent_left":
-          setIsOpponentConnected(false);
-          setOpponentName("Opponent");
-          setOpponentReady(false);
-          break;
-        case "lobby_opponent_ready":
-          setOpponentReady(true);
-          break;
-        case "lobby_match_start":
+
+        case "MATCH_START":
           startCountdown();
           break;
       }
@@ -242,14 +245,8 @@ export default function CustomArenaPage() {
 
     return () => {
       if (socket.readyState === WebSocket.OPEN) {
-        socket.send(
-          JSON.stringify({
-            type: "lobby_leave",
-            payload: { room_code: roomCode, user_id: user.id },
-          }),
-        );
+        socket.close();
       }
-      socket.close();
     };
   }, [isLoaded, user, roomCode]);
 
@@ -274,18 +271,11 @@ export default function CustomArenaPage() {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(
         JSON.stringify({
-          type: "lobby_ready",
-          payload: { room_code: roomCode, user_id: user?.id },
+          event: "PLAYER_READY",
         }),
       );
     }
   };
-
-  useEffect(() => {
-    if (iAmReady && opponentReady && phase === "waiting") {
-      startCountdown();
-    }
-  }, [iAmReady, opponentReady, phase]);
 
   const handleExecuteCode = async (actionType: "run" | "submit") => {
     if (actionType === "run") setIsRunning(true);
