@@ -1025,7 +1025,7 @@ export default function InfoSection() {
               </Link>
             </li>
             <li>
-              <span className="flex items-center text-zinc-600 cursor-not-allowed">
+              <span className="flex items-center text-zinc-600">
                 Custom Lobbies{" "}
                 <span className="ml-2 text-[8px] px-1.5 py-0.5 rounded-sm bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                   BETA
