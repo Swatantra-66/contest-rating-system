@@ -203,9 +203,6 @@ export default function Sidebar() {
                 className="w-full text-left uppercase tracking-widest text-[11px] font-bold transition-all border-l-2 pl-4 py-0.5 flex items-center gap-3 cursor-pointer border-transparent text-zinc-400 hover:text-zinc-100 hover:border-zinc-700"
               >
                 <span>Custom Lobbies</span>
-                <span className="text-[9px] text-amber-500/90 border border-amber-500/30 bg-amber-500/5 px-1.5 py-0.5 rounded uppercase tracking-widest font-bold">
-                  BETA
-                </span>
               </button>
             </div>
 
